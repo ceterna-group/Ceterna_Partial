@@ -1,0 +1,3 @@
+<apex:page standardController="Project__c">
+  <apex:iframe frameborder="true" src="{!Project__c.Jira_Link__c}" scrolling="true" id="theIframe"/>
+</apex:page>

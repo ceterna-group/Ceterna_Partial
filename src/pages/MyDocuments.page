@@ -1,0 +1,10 @@
+<apex:page sidebar="False" title="My Documents" controller="MyDocumentsController">
+    <apex:sectionHeader title="My Documents" />
+    <apex:pageBlock mode="maindetail" >
+        <apex:pageBlockTable value="{!lstContractorDocuments}" var="cd" >
+            <apex:column headerValue="Description" width="200px">{!cd.Document_Description__c}</apex:column>
+            <apex:column headerValue="Action" value="{!cd.Document_Link_Formula__c}" width="200px"/>
+        </apex:pageBlockTable>
+        
+    </apex:pageBlock>
+</apex:page>

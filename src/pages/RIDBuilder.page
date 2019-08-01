@@ -1,0 +1,391 @@
+<apex:page applyBodyTag="false" applyHtmlTag="false" controller="RIDBuilderClass" sidebar="false" showChat="false" showHeader="false" standardStylesheets="false">
+
+<html>
+
+<head>
+  <link rel="stylesheet" type="text/css" href="{!URLFOR($Resource.RIDBuilderResources, 'slds/assets/styles/slds.min.css')}"/>
+  <link rel="stylesheet" type="text/css" href="{!URLFOR($Resource.RIDBuilderResources, 'css/style.min.css')}"/>
+  <script type="text/javascript" src="{!URLFOR($Resource.RIDBuilderResources, 'js/libs/vue.min.js')}"></script>
+  <meta charset="UTF-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>RID Builder</title>
+</head>
+
+<body onload="$Load()">
+
+  <div class="slds" id="app">
+
+    <transition name="fade">
+      <div v-if="loaded == false" class="app-spinner">
+        <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+          <div class="slds-spinner__dot-a"></div>
+          <div class="slds-spinner__dot-b"></div>
+        </div>
+      </div>
+    </transition>
+
+    <div class="app-sidebar">
+
+      <div class="app-sidebar--tools slds-p-around_small">
+        <div class="slds-form-element">
+          <label class="slds-form-element__label">Search</label>
+          <div class="slds-form-element__control">
+            <input type="text" class="slds-input" v-model="search" placeholder="Search all RIDs.." />
+          </div>
+        </div>
+      </div>
+
+      <div class="app-sidebar--list">
+        <div class="slds-text-body_regular slds-truncate slds-p-around_x-small" 
+        v-for="template in filteredTemplates" v-on-click="addItem(template)">
+          {{ $Helper.decodeURI(template.Area__c) }}
+        </div>
+      </div>
+
+    </div>
+
+    <div class="app-cart slds-m-around_medium">
+
+      <div class="app-cart--header">
+        <div class="slds-text-heading_medium slds-p-around_small slds-float_left">{!record_name}</div>
+        <button v-on-click="saveCart()" v-bind-disabled="!valid || saving" class="slds-button slds-button--brand slds-m-around_x-small slds-float_right">Save</button>
+        <button v-on-click="closeApp()" class="slds-button slds-button--neutral slds-m-vertical_x-small slds-float_right">Cancel</button>
+        <div class="app-cart--header_autosave slds-float_right">
+          <input type="checkbox" v-on-click="setAuto()" v-model="autoon" v-bind-checked="autoon"/>
+        </div>
+        <div class="slds-text-body_regular slds-p-around_x-small app-cart--header-save slds-float_right">
+          <span v-if="!valid">Autosave disabled as some items have errors</span>
+          <span v-if="valid">{{ auto }}</span>
+        </div>
+      </div>
+
+      <!-- Subtabs -->
+      <div class="app-cart--tabs slds-tabs_default">
+        <ul class="slds-tabs_default__nav">
+          <li v-on-click="tab = 0" class="slds-tabs_default__item" 
+          v-bind-class="{ 'slds-is-active': tab == 0 }">
+            <a class="slds-tabs_default__link">Requirements</a>
+          </li>
+          <li v-on-click="tab = 1" class="slds-tabs_default__item"
+          v-bind-class="{ 'slds-is-active': tab == 1 }">
+            <a class="slds-tabs_default__link">Out of Scope</a>
+          </li>
+          <li v-on-click="tab = 2" class="slds-tabs_default__item"
+          v-bind-class="{ 'slds-is-active': tab == 2 }">
+            <a class="slds-tabs_default__link">Assumptions</a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Requirements Table -->
+      <table v-if="tab == 0" class="app-cart--list slds-table slds-table_bordered slds-table_cell-buffer">
+        <thead>
+          <tr class="slds-text-title_caps">
+            <th><div class="slds-truncate">Area</div></th>
+            <th><div class="slds-truncate">Requirements</div></th>
+            <th><div class="slds-truncate">Solution</div></th>
+            <th><div class="slds-truncate">Days</div></th>
+            <th><div class="slds-truncate">Sort</div></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(item, index) in items">
+            <td>
+              <div v-if="item.RID_Generator__c != customId" class="slds-truncate">{{ $Helper.decodeURI(item.Area__c) }}</div>
+              <textarea v-if="item.RID_Generator__c == customId" class="slds-textarea" v-model="item.Area__c" 
+              placeholder="Area.." v-on-keyup="checkItem(item)" maxlength="255"></textarea>
+            </td>
+            <td><textarea class="slds-textarea" v-model="item.Requirement__c" 
+              placeholder="Requirements.." v-on-keyup="checkItem(item)"
+              v-bind-class="{ 'app-error' : item.invalidRequirement == true }"></textarea></td>
+            <td><textarea class="slds-textarea" v-model="item.Solution__c" 
+              placeholder="Solution.." v-on-keyup="checkItem(item)"
+              v-bind-class="{ 'app-error' : item.invalidSolution == true }"></textarea></td>
+            <td>
+              <input type="number" class="slds-input" v-model="item.Estimated_Effort_Days__c" 
+              v-on-keyup="checkItem(item)" v-on-change="checkItem(item)" 
+              v-bind-class="{ 'app-error' : item.invalidDays == true }"/>
+              <div class="app-cart--list-sub">(Min: {{ item.minimumDays }})</div>
+            </td>
+            <td><input type="number" class="slds-input" v-model="item.Sort_Order__c" 
+              v-on-blur="sortItems('items')" v-on-change="sortItems('items')"/></td>
+            <td>
+              <button v-on-click="removeItem(item, index, 'items')" class="slds-button slds-button_icon slds-button_icon-border-filled">
+                <svg class="slds-button__icon">
+                  <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="{!URLFOR($Resource.RIDBuilderResources, 'slds/assets/icons/utility-sprite/svg/symbols.svg#delete')}"></use>
+                </svg>
+              </button>
+            </td>
+          </tr>
+          <tr v-if="items.length != 0 && type != 'Pardot'" v-for="special in specials">
+            <td><div class="slds-truncate">{{ special.Area__c }}</div></td>
+            <td><textarea class="slds-textarea" v-model="special.Requirement__c" 
+              placeholder="Requirements.." v-on-keyup="checkItem(special)"
+              v-bind-class="{ 'app-error' : special.invalidRequirement == true }"></textarea></td>
+            <td><textarea class="slds-textarea" v-model="special.Solution__c" 
+              placeholder="Solution.." v-on-keyup="checkItem(special)"
+              v-bind-class="{ 'app-error' : special.invalidSolution == true }"></textarea></td>
+            <td>
+              <div class="slds-truncate">{{ special.Estimated_Effort_Days__c.toFixed(2) }}</div>
+            </td>
+            <td></td>
+            <td>
+              <button v-on-click="editSpecial(special)" class="slds-button slds-button_icon slds-button_icon-border-filled">
+                <svg class="slds-button__icon">
+                  <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="{!URLFOR($Resource.RIDBuilderResources, 'slds/assets/icons/utility-sprite/svg/symbols.svg#edit')}"></use>
+                </svg>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Out of Scope Table -->
+      <table v-if="tab == 1" class="app-cart--list oos slds-table slds-table_bordered slds-table_cell-buffer">
+        <thead>
+          <tr class="slds-text-title_caps">
+            <th><div class="slds-truncate">Sort</div></th>
+            <th><div class="slds-truncate">Description</div></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(item, index) in oos">
+            <td><input type="text" class="slds-input" v-model="item.Name" 
+              v-on-blur="sortItems('oos')"/></td>
+            <td><textarea class="slds-textarea" v-model="item.Description__c" 
+              placeholder="Out of Scope description.." v-on-keyup="checkItem(item)"></textarea></td>
+            <td>
+              <button v-on-click="removeItem(item, index, 'oos')" class="slds-button slds-button_icon slds-button_icon-border-filled">
+                <svg class="slds-button__icon">
+                  <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="{!URLFOR($Resource.RIDBuilderResources, 'slds/assets/icons/utility-sprite/svg/symbols.svg#delete')}"></use>
+                </svg>
+              </button>
+            </td>
+          </tr>
+          <tr class="full">
+            <td class="full">
+              <button v-on-click="addOther('oos')" class="slds-button slds-button--neutral slds-float_right">Add OOS Item</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Assumptions Table -->
+      <table v-if="tab == 2" class="app-cart--list ass slds-table slds-table_bordered slds-table_cell-buffer">
+        <thead>
+          <tr class="slds-text-title_caps">
+            <th><div class="slds-truncate">Sort</div></th>
+            <th><div class="slds-truncate">Area</div></th>
+            <th><div class="slds-truncate">Description</div></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(item, index) in assumptions">
+            <td><input type="text" class="slds-input" v-model="item.Name" 
+              v-on-blur="sortItems('assumptions')"/></td>
+            <td><input class="slds-input" v-model="item.Area__c" 
+              placeholder="Assumption area.." v-on-keyup="checkItem(item)"></input></td>
+            <td><textarea class="slds-textarea" v-model="item.Description__c" 
+              placeholder="Assumption description.." v-on-keyup="checkItem(item)"></textarea></td>
+            <td>
+              <button v-on-click="removeItem(item, index, 'assumptions')" class="slds-button slds-button_icon slds-button_icon-border-filled">
+                <svg class="slds-button__icon">
+                  <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="{!URLFOR($Resource.RIDBuilderResources, 'slds/assets/icons/utility-sprite/svg/symbols.svg#delete')}"></use>
+                </svg>
+              </button>
+            </td>
+          </tr>
+          <tr class="full">
+            <td class="full">
+              <button v-on-click="addOther('assumptions')" class="slds-button slds-button--neutral slds-float_right">Add Assumption</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="app-cart--footer">
+        <div v-on-click="clearCart()" class="slds-button slds-button--destructive slds-m-around_x-small slds-float_left">Clear Cart</div>
+        <div v-on-click="clearSpecials()" class="slds-button slds-button--destructive slds-m-around_x-small slds-float_left">Reset NFRs</div>
+        <div class="slds-text-heading_medium slds-p-around_small slds-float_right">Total Days: {{ total.toFixed(2) }}</div>
+        <div class="slds-text-heading_small slds-p-around_medium slds-float_right">Pre-Total: {{ netTotal.toFixed(2) }}</div>
+      </div>
+
+    </div>
+
+    <transition name="fade">
+      <div v-show="edit == true" class="app-edit">
+        <section class="slds-modal slds-fade-in-open">
+          <div class="slds-modal__container">
+            <header class="slds-modal__header">
+              <button v-on-click="edit = false" class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse">
+                <svg class="slds-button__icon slds-button__icon_large">
+                  <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="{!URLFOR($Resource.RIDBuilderResources, 'slds/assets/icons/utility-sprite/svg/symbols.svg#close')}" />
+                </svg>
+              </button>
+              <h2 class="slds-text-heading_medium slds-hyphenate">Edit {{ special.Area__c }}</h2>
+            </header>
+            <div class="slds-modal__content slds-p-around_medium">
+              <p class="slds-p-bottom_small">
+                To edit the number of days for {{ special.Area__c }}, you must provide 
+                the reason for why you are changing it. This reason will be 
+                checked before approval.
+              </p>
+              <div class="slds-form-element slds-p-bottom_small">
+                <label class="slds-form-element__label">Days</label>
+                <div class="slds-form-element__control">
+                  <script type="text/javascript">
+                    function checkSpecial(el) {
+                      var value = document.getElementById('special');
+                      var validNumber = Number(value.value);
+                      var validDecimal = validNumber % 0.5;
+                      var reason = document.getElementById('reason');
+                      var validReason = reason.value == '' ? false : true;
+                      if (validDecimal == 0 && validReason == true) {
+                        document.getElementById('update').removeAttribute('disabled');
+                      } else {
+                        document.getElementById('update').setAttribute('disabled', true);
+                      }
+                      value.className = validDecimal == 0 ? 'slds-input' : 'slds-input app-error';
+                    }
+                  </script>
+                  <input onkeyup="checkSpecial()" type="number" min="1" step="0.5" class="slds-input" id="special" value="0"/>
+                </div>
+              </div>
+              <div class="slds-form-element">
+                <label class="slds-form-element__label">Reason for change</label>
+                <div class="slds-form-element__control">
+                  <textarea onkeyup="checkSpecial()" id="reason" class="slds-textarea" placeholder="Explain your reason here.." v-model="special.Change_Reason__c"></textarea>
+                </div>
+              </div>
+            </div>
+            <footer class="slds-modal__footer">
+              <button v-on-click="edit = false" class="slds-button slds-button_neutral">Cancel</button>
+              <button id="update" v-on-click="updateSpecial(special)" class="slds-button slds-button_brand">Update</button>
+            </footer>
+          </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+      </div>
+    </transition>
+
+  </div>
+
+  <script defer="true" type="text/javascript" src="{!URLFOR($Resource.RIDBuilderResources, 'js/dist.js')}"></script>
+  <script type="text/javascript">
+    var $Id = '{!project_id}';
+    var $Opp = '{!record_id}';
+    var $Type = '{!record_type}' == 'Core Pardot' || '{!record_type}' == 'Managed Service Pardot' ? 'Pardot' : 'Normal';
+    function $Load() {
+      $App.autoSave();
+      Visualforce.remoting.Manager.invokeAction('{!$RemoteAction.RIDBuilderClass.getTemplates}', function(templates) {
+        $App.templates = $Helper.sortAlpha(templates);
+        $App.filteredTemplates = $App.templates.filter(function(a) { return a; });
+        Visualforce.remoting.Manager.invokeAction('{!$RemoteAction.RIDBuilderClass.getItems}', $Id, function(items) {
+          $App.items = $Helper.sortOrder(
+            items.filter(function(a) { 
+              return a.Functional_Area__c.indexOf('SPECIAL') == -1
+            }).map(function(a) {
+              a.Requirement__c = $Helper.decodeURI(a.Requirement__c);
+              a.Solution__c = $Helper.decodeURI(a.Solution__c);
+              a.minimumDays = $Helper.getMinimum(a.RID_Generator__c);
+              a.invalid = false;
+              a.invalidDays = false;
+              a.invalidRequirement = false;
+              a.invalidSolution = false;
+              return a;
+            })
+          );
+          $App.specials = $Data.specials;
+          var specials = items.filter(function(a) { 
+            return a.Functional_Area__c.indexOf('SPECIAL') != -1
+          });
+          console.log(specials);
+          for (var a = 0; a < specials.length; a++) {
+            for (var b = 0; b < $App.specials.length; b++) {
+              if ($App.specials[b].Functional_Area__c == specials[a].Functional_Area__c) {
+                $App.specials[b].Estimated_Effort_Days__c = specials[a].Estimated_Effort_Days__c;
+                $App.specials[b].Requirement__c = $Helper.decodeURI(specials[a].Requirement__c);
+                $App.specials[b].Solution__c = $Helper.decodeURI(specials[a].Solution__c);
+                $App.specials[b].Change_Reason__c = $Helper.decodeURI(specials[a].Change_Reason__c) || '';
+                $App.specials[b].Id = specials[a].Id;
+              }
+            }
+          }
+          $App.updateTotal();
+          $App.customId = 'a0H0L00000zdxEvUAI';
+          console.log('custom id', $App.customId);
+
+          Visualforce.remoting.Manager.invokeAction('{!$RemoteAction.RIDBuilderClass.getExistingExtras}', $Id, function(existingExtras) {
+            console.log('existing extras', existingExtras);
+            existingExtras = existingExtras.map(function(a) {
+              if (a.Area__c) {
+                a.Area__c = $Helper.decodeURI(a.Area__c);
+              }
+              a.Description__c = $Helper.decodeURI(a.Description__c);
+              return a;
+            });
+            $App.oos = existingExtras.filter(function(a) { 
+              return a.Type__c == 'Out of Scope'; 
+            });
+            $App.assumptions = existingExtras.filter(function(a) { 
+              return a.Type__c == 'Assumption'; 
+            });
+            Visualforce.remoting.Manager.invokeAction('{!$RemoteAction.RIDBuilderClass.getExtras}', function(extras) {
+              console.log('extras are', items);
+              extras = extras.map(function(a) {
+                if (a.Area__c) {
+                  a.Area__c = $Helper.decodeURI(a.Area__c);
+                }
+                a.Description__c = $Helper.decodeURI(a.Description__c);
+                return a;
+              });
+              if ($App.oos.length == 0) {
+                $App.oos = extras.filter(function(a) { 
+                  return a.Type__c == 'Out of Scope'; 
+                });
+              }
+              if ($App.assumptions.length == 0) {
+                $App.assumptions = extras.filter(function(a) { 
+                  return a.Type__c == 'Assumption'; 
+                });
+              } 
+              $App.loaded = true;
+            });
+          });
+
+          
+
+        });
+      });
+    };
+    function $Save(items, ids, extras, callback) {
+      $App.saving = true;
+      Visualforce.remoting.Manager.invokeAction('{!$RemoteAction.RIDBuilderClass.saveItems}', 
+      items, $Opp, $Id, '{!account_id}', extras, function(res, ev) {
+        $Id = res;
+        Visualforce.remoting.Manager.invokeAction('{!$RemoteAction.RIDBuilderClass.deleteItems}', ids, function(res, ev) {
+          $App.deleted = [];
+          if (callback) { 
+            $App.auto = 'Last saved at ' + 
+              new Date().toISOString().split('T')[1].split('.')[0];
+            $App.saving = false;
+            return $Load();
+          }
+          if (ev && ev.statusCode == 200) {
+            window.location.href = window.location.href.split('.com')[0] + '.com/' + $Opp;
+          } else {
+            console.error(res, ev);
+          }
+        });
+      });
+    };
+  </script>
+
+</body>
+
+</html>
+
+</apex:page>

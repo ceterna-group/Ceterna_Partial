@@ -1,0 +1,43 @@
+<apex:page sidebar="False" name="Community_home" >
+  <table width="100%" border="0">
+  <tr>
+    <td align="center" valign="middle"><img src="/servlet/servlet.ImageServer?id=015E0000002p0DR&oid=00DD0000000Cl9q&lastMod=1384782798000" alt="Clouds Image" name="Clouds Image" /></td>
+  </tr>
+</table>
+
+<table width="940px" border="0" align="center">
+  <tr>
+      <td colspan="2">What can you do in the commmuntiy...</td>
+    <td width="1px" rowspan="6" valign="top" bgcolor="#999999">&nbsp;</td>
+    <td width="349" rowspan="6" valign="top"><table width="100%" border="0">
+      <tr>
+        <td>Test 1</td>
+      </tr>
+      <tr>
+        <td> Test 2</td>
+      </tr>
+    </table></td>
+  </tr>
+  <tr>
+    <td width="80px"><img name="" src="/servlet/servlet.ImageServer?id=015E0000002pI2Y&oid=00DD0000000Cl9q" /></td>
+    <td width="264px">Project plan<br/></td>
+  </tr>
+  <tr>
+    <td><img src="/servlet/servlet.ImageServer?id=015E0000002pHvT&oid=00DD0000000Cl9q" /></td>
+    <td>Issue Log</td>
+  </tr>
+  <tr>
+    <td><img src="/servlet/servlet.ImageServer?id=015E0000002pI32&oid=00DD0000000Cl9q" /></td>
+    <td>Client Documents</td>
+  </tr>
+  <tr>
+    <td><img src="/servlet/servlet.ImageServer?id=015E0000002pI37&oid=00DD0000000Cl9q" /></td>
+    <td>Q&amp;A</td>
+  </tr>
+  <tr>
+    <td><img src="/servlet/servlet.ImageServer?id=015E0000002pI3C&oid=00DD0000000Cl9q" /></td>
+    <td>Requests</td>
+  </tr>
+</table>
+
+</apex:page>

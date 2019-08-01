@@ -1,0 +1,5 @@
+<aura:component implements="flexipage:availableForAllPageTypes" access="global" >
+	<h2>Current Lead Time</h2>
+    
+$Label.c.Lead_Time    
+</aura:component>

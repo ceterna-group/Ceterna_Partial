@@ -1,0 +1,9 @@
+<aura:component controller="WeaverProposal" implements="force:lightningQuickAction,force:hasRecordId">
+  <aura:attribute name="recordId" type="String" default="006M000000Fc86L"></aura:attribute>
+  <aura:attribute name="status" type="String" default="Generating Word proposal.."></aura:attribute>
+  <aura:handler name="init" value="{!this}" action="{!c.runWeaver}"></aura:handler>
+  <div>
+    <lightning:spinner aura:id="mySpinner" variant="brand" alternativeText="{!v.status}" class="slds-show"/>
+    <div class="text">{!v.status}</div>
+  </div>
+</aura:component>

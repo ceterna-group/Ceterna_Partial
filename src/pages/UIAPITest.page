@@ -1,0 +1,128 @@
+<apex:page >
+
+  <apex:includeScript value="{!$Resource.Forcetek}"/>
+
+  <script type="text/javascript">
+  
+    var Force = new cForce({
+      apiVersion: 'v42.0'
+    });
+    
+    function processFor(count, total, method, callback) {
+      if (count < total) {
+        method(count, function() {
+          count ++;
+          processFor(count, total, method, callback)
+        })
+      } else {
+        callback()
+      }
+    }
+  
+    function login() {
+      Force.session('{!$Api.Session_ID}');
+      getAllMetadata(function(res) {
+        console.log('data', res);
+      });
+    }
+    login();
+    
+    function getAllMetadata(callback) {
+      var url = 'v42.0/ui-api/object-info/';
+      Force.raw(url, 'GET', null, null, function(err, res) {
+        if (err) return console.error(err);
+        var allObjects = res.objects;
+        var selectedObjects = [res.objects['Account'], res.objects['Contact']];
+        getMetadata(0, selectedObjects, [], callback);
+      });
+    }
+    
+    function getMetadata(count, objects, result, callback) {
+      processFor(0, objects.length, function(count, finish) {
+        var object = objects[count];
+        var url = object.objectInfoUrl.split('/services/data/')[1];
+        Force.raw(url, 'GET', null, null, function(err, obj) {
+          if (err) return console.error(err);
+          getAllPicklistValues(0, obj, function(vals) {
+            obj.picklistValues = vals;
+            getValidationRules(obj, function(rules) {
+              obj.validationRules = rules;
+              getFormulaFields(obj, function(updatedObj) {
+                result.push(updatedObj);
+                finish();
+              });
+            });
+          });
+        });
+      }, function() {
+        callback(result);
+      });
+    }
+    
+    function getAllPicklistValues(count, object, callback) {
+      var recordTypes = [];
+      for (var key in object.recordTypeInfos) {
+        recordTypes.push(key);
+      }
+      getPicklistValues(0, object.apiName, recordTypes, {}, function(res) {
+        callback(res);
+      });
+    }
+    
+    function getPicklistValues(count, object, recordTypes, result, callback) {
+      processFor(0, recordTypes.length, function(count, finish) {
+        var recordType = recordTypes[count];
+        var url = 'v42.0/ui-api/object-info/' + object + '/picklist-values/' + recordType;
+        Force.raw(url, 'GET', null, null, function(err, vals) {
+          if (err) return console.error(err);
+          result[recordType] = vals;
+          finish();
+        });
+      }, function() { 
+        callback(result);
+      });
+    }
+    
+    function getValidationRules(object, callback) {
+      var url = "v35.0/tooling/query?q=Select Id" + 
+        ",Active,Description,EntityDefinition.DeveloperName," + 
+        "ErrorDisplayField, ErrorMessage From ValidationRule" + 
+        " where EntityDefinition.DeveloperName = '" + object.apiName + "'";
+      Force.raw(url, 'GET', null, null, function(err, res) {
+        if (err) return console.error(err);
+        getValidationMetadata(res.records, function(res) {
+          callback(res);
+        });
+      });
+    }
+    
+    function getValidationMetadata(validationRules, callback) {
+      processFor(0, validationRules.length, function(count, finish) {
+        var rule = validationRules[count];
+        var url = "v35.0/tooling/query?q=Select Metadata FROM ValidationRule WHERE Id = '" + rule.Id + "'";
+        Force.raw(url, 'GET', null, null, function(err, res) {
+          if (err) return console.error(err);
+          validationRules[count].errorConditionFormula = res.records[0].Metadata.errorConditionFormula;
+          finish();
+        });
+      }, function() {
+        callback(validationRules);
+      });
+    }
+    
+    function getFormulaFields(object, callback) {
+      var url = 'v42.0/sobjects/' + object.apiName + '/describe/';
+      Force.raw(url, 'GET', null, null, function(err, res) {
+        if (err) return console.error(err);
+        res.fields.forEach(function(a) {
+          if (a.calculated == true) {
+            object.fields[a.name].calculatedFormula = a.calculatedFormula
+          }
+        });
+        callback(object);
+      });
+    }
+  </script>
+
+
+</apex:page>

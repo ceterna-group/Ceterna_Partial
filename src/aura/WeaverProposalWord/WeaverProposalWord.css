@@ -1,0 +1,20 @@
+.THIS {
+  position: relative;
+  overflow: hidden;
+  height: 210px;
+}
+
+.THIS .slds-spinner_container {
+  height: 180px;
+}
+
+.THIS .text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  line-height: 260px;
+  text-align: center;
+  z-index: 100000000;
+}

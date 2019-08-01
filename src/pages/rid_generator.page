@@ -1,0 +1,205 @@
+<apex:page controller="rid_generator" standardStylesheets="false" applyBodyTag="false" sidebar="false" showHeader="false">
+
+  <script type="text/javascript" src="{!URLFOR($Resource.rid_generator, 'js/vue.js')}"></script>
+  <script type="text/javascript" src="{!URLFOR($Resource.rid_generator, 'js/vs.js')}"></script>
+  <link rel="stylesheet" type="text/css" href="https://www.lightningdesignsystem.com/assets/styles/salesforce-lightning-design-system.css"/>
+  <link rel="stylesheet" type="text/css" href="{!URLFOR($Resource.rid_generator, 'css/style.css')}"/>
+  <link rel="icon" type="image/png" href="{!URLFOR($Resource.rid_generator, 'icons/favicon.png')}" />
+  <title>RID Builder</title>
+
+  <body>
+    <div id="vm" class="vm slds">
+
+      <!-- Spinner -->
+      <div id="spinner" class="slds-spinner_container" v-if="loaded_products == false">
+        <div role="status" class="slds-spinner slds-spinner--medium slds-spinner--brand">
+          <span class="slds-assistive-text">Loading</span>
+          <div class="slds-spinner__dot-a"></div>
+          <div class="slds-spinner__dot-b"></div>
+        </div>
+      </div>  
+
+      <div class="full-height">
+        <div class="full-height slds-grid slds-wrap">
+  
+          <!-- Products -->
+          <div class="full-height">
+            <div class="app-left slds-card">
+              <div class="slds-grid slds-grid--vertical slds-navigation-list--vertical slds-navigation-list--vertical-inverse">
+                <div class="slds-is-relative" id="filters">
+                  <!-- Search Element -->
+                  <div class="slds-form-element" id="product-search">
+                    <label class="slds-form-element__label" for="text-input-01">Global Search</label>
+                    <div class="slds-form-element__control slds-input-has-icon slds-input-has-icon--left">
+                      <div class="slds-input__icon slds-input__icon--left slds-icon-text-default">
+                        <img src="{!URLFOR($Resource.rid_generator, 'icons/search.png')}"/>
+                      </div>
+                      <input class="slds-input" placeholder="Search.." v-model="search_query" v-on-keyup="set_filters()" />
+                    </div>
+                  </div>
+                  <!-- Filter Element -->
+                  <div class="slds-form-element" id="product-cloud">
+                    <label class="slds-form-element__label" for="select-01">Type Of Cloud</label>
+                    <div class="slds-form-element__control">
+                      <div class="slds-select_container">
+                        <select class="slds-select" v-model="selected_cloud" v-on-change="set_filters()">
+                          <option v-for="cloud in clouds">{{ cloud }}</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div id="items">
+                  <h2 class="slds-text-title--caps slds-p-around--medium">RIDs</h2>
+                  <ul>
+                    <li v-for="item in filtered_products" v-on-click="add_item(item)">
+                      <a class="slds-navigation-list--vertical__action slds-text-link--reset">{{ vh.decode_value(item.Area__c) }}</a>
+                    </li>
+                  </ul>
+                  <h2 class="slds-text-title--caps slds-p-around--medium">Packages</h2>
+                  <ul>
+                    <li v-bind-disabled="vh.contains_package(product_cart)" v-for="item in filtered_packages" v-on-click="add_package(item)">
+                      <a class="slds-navigation-list--vertical__action slds-text-link--reset">{{ vh.decode_value(item) }}</a>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+  
+          <!-- Cart -->
+          <div class="full-height">
+            <div class="app-right slds-card">
+              <div class="slds-p-around--x-small">
+                <div class="slds-text-heading--medium">{!record_name}</div>
+              </div>
+              <table class="slds-table slds-table--bordered slds-no-row-hover">
+                <thead>
+                  <tr class="slds-text-title--caps">
+                    <th><div class="slds-truncate">Area</div></th>
+                    <th><div class="slds-truncate">Requirements</div></th>
+                    <th><div class="slds-truncate">Solution</div></th>
+                    <th><div class="slds-truncate">Days</div></th>
+                    <th><div class="slds-truncate">Sort</div></th>
+                    <th><div class="slds-truncate"></div></th>
+                  </tr>
+                </thead>
+                <tbody v-if="loaded_products == true">
+                  <tr v-for="(item, index) in product_cart">
+                    <td>
+                      <div v-if="item.RID_Generator__c !== customid" class="name slds-truncate">
+                        {{ vh.decode_value(item.Area__c) }}
+                        <span v-if="item.Is_Package__c == true">[PACKAGE ITEM]</span>
+                      </div>
+                      <div v-if="item.RID_Generator__c == customid" class="slds-truncate">
+                        <textarea v-bind-class="{ 'slds-has-error' : item.area_valid == false }" class="slds-textarea are" 
+                        v-on-keyup="validate_item(item)" placeholder="Enter an area.." v-model="item.Area__c" maxlength="30"></textarea>
+                      </div>
+                    </td>
+                    <td><div class="slds-truncate">
+                      <textarea v-bind-class="{ 'slds-has-error' : item.requirement_valid == false }" class="slds-textarea req" 
+                      v-on-keyup="validate_item(item)" placeholder="Enter your requirement.." v-model="item.Requirement__c"></textarea>
+                    </div></td>
+                    <td><div class="slds-truncate">
+                      <textarea v-bind-class="{ 'slds-has-error' : item.solution_valid == false }" class="slds-textarea sol" 
+                      v-on-keyup="validate_item(item)" placeholder="Enter your solution.." v-model="item.Solution__c"></textarea>
+                    </div></td>
+                    <td><div class="slds-truncate">
+                      <textarea v-bind-class="{ 'slds-has-error' : item.days_valid == false }" class="slds-textarea num" 
+                      v-on-keyup="validate_item(item)" v-on-blur="round_number(item, 'Estimated_Effort_Days__c')" v-model="item.Estimated_Effort_Days__c"></textarea>
+                      <span>(Min: {{ min_value(item, 'Estimated_Effort_Days__c') }})</span>
+                    </div></td>
+                    <td><div class="slds-truncate">
+                      <textarea class="slds-textarea num" v-on-change="sort_cart()" v-model="item.Sort_Order__c"></textarea>
+                    </div></td>
+                    <td><div>
+                      <button v-if="item.Is_Package__c == false" class="slds-button" v-on-click="remove_item(index, item.Id)">
+                      <img class="slds-img" src="{!URLFOR($Resource.rid_generator, 'icons/delete.png')}"/>
+                      </button>
+                    </div></td>
+                  </tr>
+                  <tr  v-if="product_cart.length !== 0" v-for="item in special_products">
+                    <td><div class="slds-truncate">{{ vh.decode_value(item.Area__c) }}</div></td>
+                    <td><div class="slds-truncate">
+                      <textarea v-bind-class="{ 'slds-has-error' : item.Requirement__c == '' }" class="slds-textarea req" 
+                      v-on-keyup="validate_item(item)" placeholder="Enter your requirement.." v-model="item.Requirement__c"></textarea>
+                    </div></td>
+                    <td><div class="slds-truncate">
+                      <textarea v-bind-class="{ 'slds-has-error' : item.Solution__c == '' }" class="slds-textarea sol" 
+                      v-on-keyup="validate_item(item)" placeholder="Enter your solution.." v-model="item.Solution__c"></textarea>
+                    </div></td>
+                    <td><div class="slds-truncate">{{ item.Estimated_Effort_Days__c ? (item.Estimated_Effort_Days__c).toFixed(2) : '0.00' }}</div></td>
+                    <td><div class="slds-truncate"></div></td>
+                    <td><div class="slds-truncate"></div></td>
+                  </tr>
+                </tbody>
+              </table>
+              <button class="slds-button slds-button--neutral slds-float--right slds-m-top--x-small slds-m-right--x-small" onclick="$redirect()">Cancel</button>
+              <button class="slds-button slds-button--destructive slds-float--left slds-m-top--x-small slds-m-left--x-small" v-on-click="clear_cart()">Clear Cart</button>
+              <button v-bind-disabled="!valid_cart || save_message == 'Saving..'" id="cart-save" class="slds-button 
+              slds-float--right slds-m-around--x-small slds-button--brand" onclick="vm.save_cart()">{{ save_message }}</button>
+              <div id="cart-total-days" class="slds-float--right slds-m-around--small">Total Days: {{ total_days }}</div>
+            </div>
+          </div>
+  
+        </div>
+      </div>
+    </div>
+    
+    <apex:form html-hidden="true">
+      <apex:actionFunction action="{!redirect}" name="$redirect"/>
+    </apex:form>
+
+  </body>
+  
+  <script type="text/javascript">
+    // get id, set actions
+    var $opportunity_id = '{!record_id}';
+    var $custom_id = '{!$Label.CUSTOMRID}';
+    var $project_id = '{!project_id}';
+    var $account_id = '{!account_id}'
+    var $actions = [
+      '{!$RemoteAction.rid_generator.get_rids}',
+      '{!$RemoteAction.rid_generator.get_existing}',
+      '{!$RemoteAction.rid_generator.set_rids}',
+      '{!$RemoteAction.rid_generator.del_rids}'
+    ];
+    // gets all rid generator records
+    function $get_rids() {
+      return new Promise(function(resolve) {
+        Visualforce.remoting.Manager.invokeAction($actions[0], function(res) {
+          console.log('RID Generators:', res);
+          resolve(res);
+        })
+      });
+    };
+    // get existing rid detail records if any
+    function $get_existing(record_id) {
+      return new Promise(function(resolve) {
+        Visualforce.remoting.Manager.invokeAction($actions[1], record_id, function(res, ev) {
+          if (!ev.status) return alert('LOAD ERROR: ' + ev.message);
+          console.log('Existing RIDs:', res);
+          resolve(res);
+        })
+      });
+    };
+    // saves the cart and deletes any given ids if needed
+    function $save_cart(items, ids) {
+      var id = $project_id == null || $project_id == '' ? 'NONE' : $project_id;
+      Visualforce.remoting.Manager.invokeAction($actions[2], items, $opportunity_id, id, $account_id, function(res, ev) {
+        if (!ev.status) return alert('SAVE ERROR: ' + ev.message);
+        if (ids.length !== 0) {
+          Visualforce.remoting.Manager.invokeAction($actions[3], ids, function(res, ev) {
+            if (!ev.status) return alert('DELETE ERROR: ' + ev.message);
+            $redirect();
+          });
+        } else {
+          $redirect();
+        }
+      })
+    }
+  </script>
+  <script type="text/javascript" src="{!URLFOR($Resource.rid_generator, 'js/vh.js')}"></script>
+  <script type="text/javascript" src="{!URLFOR($Resource.rid_generator, 'js/vm.js')}"></script>
+    
+</apex:page>

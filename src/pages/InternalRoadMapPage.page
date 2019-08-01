@@ -1,0 +1,341 @@
+<apex:page standardController="Account" tabStyle="Account">
+
+<apex:sectionHeader title="{!account.name}" subtitle="Internal Roadmap" />
+
+<apex:includeScript value="http://static.simile.mit.edu/timeline/api-2.3.0/timeline-api.js?bundle=true"/>
+<apex:includeScript value="http://www.enjoyxstudy.com/javascript/dateformat/dateformat.js"/>
+<style type="text/css">
+.icon-chatter img {
+    height: 12px;
+    width:  12px;
+}
+</style>
+<style type="text/css">
+.timeline-event-icon{
+	margin-left: -15px;
+}
+
+.timeline-container {
+position: relative;
+overflow: hidden;
+}
+
+.timeline-copyright {
+position: absolute;
+bottom: 0px;
+left: 0px;
+z-index: 1000;
+cursor: pointer;
+display:none;
+}
+
+.timeline-message-container {
+position: absolute;
+top: 30%;
+left: 35%;
+right: 35%;
+z-index: 1000;
+display: none;
+}
+.timeline-message {
+font-size: 120%;
+font-weight: bold;
+text-align: center;
+}
+.timeline-message img {
+vertical-align: middle;
+}
+
+.timeline-band {
+position: absolute;
+background: #eee;
+z-index: 10;
+}
+
+.timeline-band-inner {
+position: relative;
+width: 100%;
+height: 100%;
+}
+
+.timeline-band-input {
+position: absolute;
+width: 1em;
+height: 1em;
+overflow: hidden;
+z-index: 0;
+}
+.timeline-band-input input{
+width: 0;
+}
+
+.timeline-band-layer {
+position: absolute;
+width: 100%;
+height: 100%;
+}
+
+.timeline-band-layer-inner {
+position: relative;
+width: 100%;
+height: 100%;
+}
+
+.timeline-ether-marker-bottom {
+width: 5em;
+height: 1.5em;
+border-left: 1px solid #aaa;
+padding-left: 2px;
+color: #aaa;
+}
+
+.timeline-ether-marker-bottom-emphasized {
+width: 5em;
+height: 2em;
+border-left: 1px solid #aaa;
+padding-left: 2px;
+color: black;
+}
+
+.timeline-ether-marker-top {
+width: 5em;
+height: 1.5em;
+border-left: 1px solid #aaa;
+padding-left: 2px;
+color: #aaa;
+}
+
+.timeline-ether-marker-top-emphasized {
+width: 5em;
+height: 2em;
+border-left: 1px solid #aaa;
+padding-left: 2px;
+color: black;
+}
+
+
+.timeline-ether-marker-right {
+width: 5em;
+height: 1.5em;
+border-top: 1px solid #aaa;
+padding-top: 2px;
+color: #aaa;
+}
+
+.timeline-ether-marker-right-emphasized {
+width: 7em;
+height: 1.5em;
+border-top: 1px solid #aaa;
+padding-top: 2px;
+color: black;
+}
+.timeline-ether-marker-left {
+width: 5em;
+height: 1.5em;
+border-top: 1px solid #aaa;
+padding-top: 2px;
+color: #aaa;
+}
+
+.timeline-ether-marker-left-emphasized {
+width: 7em;
+height: 1.5em;
+border-top: 1px solid #aaa;
+padding-top: 2px;
+color: black;
+}
+.timeline-duration-event {
+position: absolute;
+overflow: hidden;
+border: 1px solid blue;
+}
+
+.timeline-instant-event2 {
+position: absolute;
+overflow: hidden;
+border-left: 1px solid blue;
+padding-left: 2px;
+}
+
+.timeline-instant-event {
+position: absolute;
+overflow: hidden;
+}
+
+.timeline-event-bubble-title {
+font-weight: bold;
+border-bottom: 0px;
+margin-bottom: 0.5em;
+}
+
+.timeline-event-bubble-body {
+}
+
+.timeline-event-bubble-wiki {
+margin: 0.5em;
+text-align: right;
+color: #A0A040;
+}
+.timeline-event-bubble-wiki a {
+color: #A0A040;
+}
+
+.timeline-event-bubble-time {
+color: #aaa;
+}
+
+.timeline-event-bubble-image {
+float: right;
+padding-left: 5px;
+padding-bottom: 5px;
+}
+</style>
+<script>
+var tl;
+function createTimeline() {
+  var eventSource = new Timeline.DefaultEventSource();
+  var theme = Timeline.ClassicTheme.create();
+  var timezone = new Date().getTimezoneOffset() / -60;
+  
+  theme.event.tape.height = 10;
+
+/*  
+  var bandInfos = [
+    Timeline.createBandInfo({
+        timeZone:       timezone,
+        eventSource:    eventSource,
+        width:          "60%", 
+        theme:          theme,
+        intervalUnit:   Timeline.DateTime.DAY, 
+        intervalPixels: 100
+    }),
+    Timeline.createBandInfo({
+        timeZone:       timezone,
+        eventSource:    eventSource,
+        overview:       true,
+        width:          "15%",
+        trackHeight: 	0.6,
+		trackGap: 		0.1,
+        intervalUnit:   Timeline.DateTime.WEEK, 
+        intervalPixels: 200
+    }),
+    Timeline.createBandInfo({
+        timeZone:       timezone,
+        eventSource:    eventSource,
+        overview:       true,
+        width:          "15%", 
+        intervalUnit:   Timeline.DateTime.MONTH, 
+        intervalPixels: 200
+    }),
+    Timeline.createBandInfo({
+        timeZone:       timezone,
+        eventSource:    eventSource,
+        overview:       true,
+        width:          "10%", 
+        intervalUnit:   Timeline.DateTime.YEAR, 
+        intervalPixels: 200
+    })
+  ];
+  bandInfos[1].syncWith=0;
+  bandInfos[1].highlight = true;
+  bandInfos[2].syncWith=1;
+  bandInfos[2].highlight = true;
+  bandInfos[3].syncWith=2;
+  bandInfos[3].highlight = true;
+*/
+  
+  var bandInfos = [
+    Timeline.createBandInfo({
+        timeZone:       timezone,
+        eventSource:    eventSource,
+        width:          "80%", 
+        theme:          theme,
+        intervalUnit:   Timeline.DateTime.WEEK, 
+        intervalPixels: 300
+    }),
+    Timeline.createBandInfo({
+        timeZone:       timezone,
+        eventSource:    eventSource,
+        overview:       true,
+        width:          "10%", 
+        intervalUnit:   Timeline.DateTime.MONTH, 
+        intervalPixels: 200
+    }),
+    Timeline.createBandInfo({
+        timeZone:       timezone,
+        eventSource:    eventSource,
+        overview:       true,
+        width:          "10%", 
+        intervalUnit:   Timeline.DateTime.YEAR, 
+        intervalPixels: 200
+    })
+  ];
+  bandInfos[1].syncWith=0;
+  bandInfos[1].highlight = true;
+  bandInfos[2].syncWith=1;
+  bandInfos[2].highlight = true;
+  
+  tl = Timeline.create(document.getElementById("my-timeline"), bandInfos);
+  var band = tl.getBand(0);
+  band.allDone = function() {refreshChatter();};
+  SimileAjax.DOM.registerEventWithObject(band._div,"mouseup",band,"allDone")
+  Timeline.loadXML("InternalRoadMapXMLData?id={!account.id}", function(xml, url) { eventSource.loadXML(xml, url); });
+}
+window.onload = function() { createTimeline();refreshChatter();};
+
+var resizeTimerID = null;
+function resizeTimeline() {
+    if (resizeTimerID == null) {
+        resizeTimerID = window.setTimeout(function() {
+            resizeTimerID = null;
+            tl.layout();
+        }, 500);
+    }
+}
+window.onresize = function() { resizeTimeline(); };
+
+function refreshChatter() 
+{
+
+    var band = tl.getBand(0);
+    var dateFormat = new DateFormat('yyyy-MM-dd HH:mm:ss');
+    var minDate = band.getMinVisibleDate();
+    var maxDate = band.getMaxVisibleDate();
+    var timezoneStr = getTimezoneStr(maxDate.getTimezoneOffset());
+    var minDateStr = encodeURI(dateFormat.format(minDate) + timezoneStr);
+    var maxDateStr = encodeURI(dateFormat.format(maxDate) + timezoneStr);
+    var url = 'ChatterTLRFeedSnippet?from=' + minDateStr + '&to=' + maxDateStr;
+//    SimileAjax.XmlHttp.get(url, onFailure, onSuccess);
+    
+}
+
+function getTimezoneStr(offset) {
+    var hour = Math.abs(offset / 60);
+    var min = offset % 60;
+    var result = '';
+    if (offset <= 0) {
+        result += '+';
+    } else {
+        result += '-';
+    }
+    if (hour < 10) {
+        result += '0';
+    }
+    result += hour;
+    result += ':';
+    if (min < 10) {
+        result += '0';
+    }
+    result += min;
+    return result;
+}
+function onSuccess(obj) {
+    document.getElementById("my-chatter").innerHTML = obj.responseText;
+}
+function onFailure(obj) {
+    alert('failed to call');
+}
+</script>
+<div id="my-timeline" style="height: 750px; border: 1px solid #aaa">&nbsp;</div>
+<div id="my-chatter"></div>
+</apex:page>

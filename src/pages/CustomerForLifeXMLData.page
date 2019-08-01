@@ -1,0 +1,2 @@
+<apex:page standardController="Account" ></apex:page>
+<!-- apex:page standardController="Account" extensions="CustomerForLifeDataController" contentType="application/xml">{!XMLData}</apex:page-->

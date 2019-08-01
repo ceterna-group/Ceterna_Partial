@@ -1,0 +1,50 @@
+<apex:page id="AcceptpgId" controller="AcceptCaseController">
+<style>
+.detailList td{
+	
+	vertical-align: middle !important;
+}
+.detailList td:first-child{
+	text-align:right;
+}  
+textarea{
+	width: 500px;
+	height: 360px;
+	border: 1px solid #ccc;
+	font-size: 13px;
+	font-family: 'Arial','Helvetica',sans-serif;
+}
+.bPageBlock .detailList .dataCol{
+	width:100px !important;
+}
+</style>
+<apex:form id="formId">
+
+	<apex:Pageblock id="pbid">
+		<apex:Pageblocksection id="pbsectionId">
+			<apex:outputlabel id="ackmsg" value="Client Acknowledgement Message" />
+			<apex:inputtextarea id="ackmsgIpid" value="{!sClientAckMessage}" />
+			<apex:Outputlabel id="tid" value="" />
+			<apex:commandbutton value="Send Client Acknowledgment Message" id="OkbtnId" action="{!Save}" onComplete="Redirect();"/>
+			
+			<apex:outputlabel id="NumberId" value="Subject" />
+			<apex:outputtext id="NumberIpId" value="{!sSubject}" />
+			
+			<apex:outputlabel id="DescId" value="Description" />
+			<apex:outputtext id="DescIpId" value="{!sDesc}" />
+			
+		</apex:Pageblocksection> 
+	</apex:Pageblock>
+	
+	
+	<script>
+	
+	function Redirect(){
+	
+		window.open('/500','_self');
+	}
+	
+	</script>
+	
+</apex:form>
+</apex:page>

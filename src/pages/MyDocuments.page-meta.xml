@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ApexPage xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>20.0</apiVersion>
+    <availableInTouch>false</availableInTouch>
+    <confirmationTokenRequired>false</confirmationTokenRequired>
+    <description>&lt;a href=&quot;{!cd.Document_Link__c}&quot; target=&quot;_blank&quot;&gt;View&lt;/a&gt;
+
+            &lt;apex:column headerValue=&quot;Name&quot; value=&quot;{!cd.Name}&quot; width=&quot;150px&quot;/&gt;  
+
+            &lt;apex:column headerValue=&quot;Share With&quot; width=&quot;300px&quot;&gt;{!cd.Share_With__c}&lt;/apex:column&gt;</description>
+    <label>MyDocuments</label>
+</ApexPage>

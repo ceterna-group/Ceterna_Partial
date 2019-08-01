@@ -1,0 +1,21 @@
+<apex:page sidebar="False" controller="SmartsheetIssueLogCon">
+
+  <IFRAME WIDTH="100%" HEIGHT="650" FRAMEBORDER="0" SRC="" id="ifrm"></IFRAME>
+  <center><div style="display:none;background-color:#FFFFFF;color:red;height:25px;padding-top:5px;padding-left:10px;font-size: 17px;padding-right: 10px; font-weight: bold" id="dvid"></div></center>
+  
+  <script>
+	  //alert('hi welcome to smartsheet'+'{!sheetKey}'); 
+	   if('{!sheetkey}' !='' && '{!sheetkey}' != null)
+	   {
+	   	document.getElementById('ifrm').src ='https://app.smartsheet.com/b/home?lx={!sheetKey}&embed=true';
+	   	document.getElementById('dvid').style.display='none';
+	   }else
+	   {
+	   	//alert('The smartsheet has not been created'); 
+	   	document.getElementById('ifrm').style.display='none';
+	   	document.getElementById('dvid').style.display='block';
+	   	document.getElementById('dvid').innerHTML ='The smartsheet has not been created';
+	   }    
+  </script>
+  
+</apex:page>
