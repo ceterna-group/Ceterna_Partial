@@ -193,6 +193,14 @@
                             <option name="selected" value="true" />
                           </MetadataEntry>
                           <MetadataEntry>
+                            <option name="name" value="OpportunityTriggerHandler" />
+                            <option name="selected" value="true" />
+                          </MetadataEntry>
+                          <MetadataEntry>
+                            <option name="name" value="RegressionHandler" />
+                            <option name="selected" value="true" />
+                          </MetadataEntry>
+                          <MetadataEntry>
                             <option name="name" value="rid_generator" />
                             <option name="selected" value="true" />
                           </MetadataEntry>
@@ -289,6 +297,22 @@
                             <option name="selected" value="true" />
                           </MetadataEntry>
                           <MetadataEntry>
+                            <option name="name" value="XeroAccountingApi" />
+                            <option name="selected" value="true" />
+                          </MetadataEntry>
+                          <MetadataEntry>
+                            <option name="name" value="XeroAddress" />
+                            <option name="selected" value="true" />
+                          </MetadataEntry>
+                          <MetadataEntry>
+                            <option name="name" value="XeroCalloutUtility" />
+                            <option name="selected" value="true" />
+                          </MetadataEntry>
+                          <MetadataEntry>
+                            <option name="name" value="XeroContact" />
+                            <option name="selected" value="true" />
+                          </MetadataEntry>
+                          <MetadataEntry>
                             <option name="name" value="XeroInvoiceProcess" />
                             <option name="selected" value="true" />
                           </MetadataEntry>
@@ -298,6 +322,14 @@
                           </MetadataEntry>
                           <MetadataEntry>
                             <option name="name" value="XeroInvoiceUpdation" />
+                            <option name="selected" value="true" />
+                          </MetadataEntry>
+                          <MetadataEntry>
+                            <option name="name" value="XeroOAuthUtility" />
+                            <option name="selected" value="true" />
+                          </MetadataEntry>
+                          <MetadataEntry>
+                            <option name="name" value="XeroPhone" />
                             <option name="selected" value="true" />
                           </MetadataEntry>
                           <MetadataEntry>
@@ -587,6 +619,10 @@
                           </MetadataEntry>
                           <MetadataEntry>
                             <option name="name" value="dlrs_Project_Line_NewTrigger" />
+                            <option name="selected" value="true" />
+                          </MetadataEntry>
+                          <MetadataEntry>
+                            <option name="name" value="OpportunityTrigger" />
                             <option name="selected" value="true" />
                           </MetadataEntry>
                         </list>
