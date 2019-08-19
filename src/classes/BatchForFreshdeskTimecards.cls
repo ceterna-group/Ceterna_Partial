@@ -1,26 +1,22 @@
-global class BatchForFreshdeskTimecards implements Database.Batchable<sObject>, Database.AllowsCallouts
-{
-    global Database.QueryLocator start(Database.BatchableContext BC)
- 	{
+global class BatchForFreshdeskTimecards implements Database.Batchable<sObject>, Database.AllowsCallouts {
+
+    global Database.QueryLocator start(Database.BatchableContext BC) {
  		String query = 'Select Id, Freshdesk_ID__c from Freshdesk_Ticket__c where Freshdesk_ID__c != null';
  		return Database.getQueryLocator(query);
  	}
  	
- 	global void execute(Database.BatchableContext BC, List<SObject> scope)
- 	{
+ 	global void execute(Database.BatchableContext BC, List<SObject> scope) {
  		List<FreshdeskTimecardsClass> timecardsClassList = new List<FreshdeskTimecardsClass>();
- 		List<String> timecardIds = new List<String>();
- 		List<Freshdesk_Timecard__c> timecardList = new List<Freshdesk_Timecard__c>();
+ 		List<String> timecardIds 					= new List<String>();
+ 		List<Freshdesk_Timecard__c> timecardList 	= new List<Freshdesk_Timecard__c>();
  		
  		Map<String, Id> fdIdActualFDMap = new Map<String, Id>();
- 		for(SObject sobj : scope)
- 		{
+ 		for(SObject sobj : scope) {
  			Freshdesk_Ticket__c ticket = (Freshdesk_Ticket__c) sobj;
  			fdIdActualFDMap.put(ticket.Freshdesk_ID__c, ticket.Id); 			
  		}
  		
- 		if(!fdIdActualFDMap.isEmpty())
-	    {
+ 		if(!fdIdActualFDMap.isEmpty()) {
 	    	String endPointURL = Label.freshdeskTimecardsEndPointURL;
 	      	String userName = Label.freshdeskUsername;
 	      	String password = Label.freshdeskPass;
@@ -36,12 +32,10 @@ global class BatchForFreshdeskTimecards implements Database.Batchable<sObject>, 
 		    req.setHeader('Authorization', authorizationHeader);
 		    req.setMethod('GET');
 		
-		    try 
-		    {
+		    try {
 		        res = http.send(req);		       
 		    } 
-		    catch(System.CalloutException e) 
-		    {
+		    catch(System.CalloutException e) {
 		        Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
 		    	String[] toAddresses = new String[] {Label.freshdeskSupportUsername};
 		    	mail.setToAddresses(toAddresses);
@@ -51,13 +45,11 @@ global class BatchForFreshdeskTimecards implements Database.Batchable<sObject>, 
 		    	Messaging.sendEmail(new Messaging.SingleEmailMessage[] { mail });
 		    }
 		    
-		    if(res.getBody() != null && res.getBody() != '')
-	        {
+		    if(res.getBody() != null && res.getBody() != '') {
+
 	        	JSONParser parser = JSON.createParser(res.getBody());
-		        while (parser.nextToken() != null) 
-		        {	  
-		        	 if (parser.getCurrentToken() == JSONToken.START_ARRAY) 
-		        	 {
+		        while (parser.nextToken() != null) {
+		        	 if (parser.getCurrentToken() == JSONToken.START_ARRAY) {
 		        	 	 while (parser.nextToken() != null) 
 		        	 	 {	
 		        	       	if (parser.getCurrentToken() == JSONToken.START_OBJECT) 

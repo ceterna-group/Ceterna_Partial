@@ -5,44 +5,44 @@
 *  Freshdesk v2 has a limitation as to we cannot create multiple companies/contacts at the same time, hence the loop.
 */
 
-global class CreateFreshdeskCompanyContact 
-{
-    @future(callout=true)
-	public static void createFreshdeskCompany(List<String> accountIds)
-	{
-		if(!accountIds.isEmpty() && accountIds.size() >= 1)
-		{
+global class CreateFreshdeskCompanyContact {
+
+	@Future(Callout=true)
+	public static void createFreshdeskCompany(List<String> accountIds) {
+		if(!accountIds.isEmpty() && accountIds.size() >= 1) {
 			Map<String, String> salesforceIdToFreshdeskId = new Map<String, String>();
 			
 			//query the account records.
-			Map<Id, Account> accountRecords = new Map<Id, Account>([Select Id, Name, Description, Freshdesk_Support_Email_Address__c, Freshdesk_Domain_Names__c, Support_Name__c from Account where Id In :accountIds]);
-			for(Account account : accountRecords.values())
-			{
+			Map<Id, Account> accountRecords = new Map<Id, Account>(
+								[SELECT Id, Name, Description, Freshdesk_Support_Email_Address__c,
+										Freshdesk_Domain_Names__c, Support_Name__c
+								FROM Account
+								WHERE Id IN :accountIds]);
+			for(Account account : accountRecords.values()) {
 				String responseBody = '';				
 									
 				//build the json string for the request body
 				String bodyContent = buildBodyContent(account);
 				
 				//connect to freshdesk
-				if(bodyContent != '')
-				{						
+				if(bodyContent != '') {
 					Http http = new Http();
 					HttpRequest req = buildWebServiceRequest(bodyContent, 'Account');
 					HttpResponse res = invokeWebService(http, req, account.Id, 'Account');	
-					responseBody = 	res.getBody();			
+					responseBody = 	res.getBody();
+
+					System.debug('create header is ' + res.getStatusCode());
+					System.debug('create body is ' + res.getBody());
+
 				}		
 				
 				//check if the response is successfull or has any validation error.
-				if(responseBody != null && responseBody != '')
-		        {
+				if(responseBody != null && responseBody != '') {
 		        	//will send a email if response has some validation error
-		        	if(responseBody.contains('Validation failed'))
-		        	{
+		        	if(responseBody.contains('Validation failed')) {
 		        		String errorMessage = parseErrorJSON(responseBody);
 	        			sendErrorEmail('Company cannot be created on Freshdesk.\n\n Freshdesk validation errors while creating company.\n'+errorMessage+ '. \n\nSF Account Name: '+Account.Name);
-		        	}
-		        	else
-			        {	    
+		        	} else {
 			        	//parser the response JSON and get the freshdesk id for created company 
 			        	salesforceIdToFreshdeskId = getFreshdeskIdfromResponse('salesforce_account_id', responseBody); 
 			        }       				        		
@@ -51,10 +51,8 @@ global class CreateFreshdeskCompanyContact
 			
 			//Update the account with the freshdesk id of created company
 			List<Account> updateAccounts = new List<Account>();
-			if(!salesforceIdToFreshdeskId.isEmpty())
-			{
-				for(String accountId : salesforceIdToFreshdeskId.KeySet())
-				{
+			if(!salesforceIdToFreshdeskId.isEmpty()) {
+				for(String accountId : salesforceIdToFreshdeskId.KeySet()) {
 					Account acc = accountRecords.get(accountId);
 					acc.Support_Name__c = salesforceIdToFreshdeskId.get(accountId);
 					updateAccounts.add(acc);
@@ -216,17 +214,32 @@ global class CreateFreshdeskCompanyContact
 						
 					domainName += '"'+domains[k]+'"';
 				}	
-				bodyContent += ' { "name":"'+account.Name+'", "description":"'+String.valueOf(account.Description)+'", "domains":['+domainName+'], "custom_fields":{"salesforce_account_id":"'+account.Id+'", "support_email_address":"'+account.Freshdesk_Support_Email_Address__c+'"}}'; 
+				bodyContent +=
+						' { "name":"'+account.Name+'", ' +
+						'"description":"'+String.valueOf(account.Description)+'", ' +
+						'"domains":['+domainName+'], ' +
+						'"custom_fields":{"salesforce_account_id":"'+account.Id+'", ' +
+						'"support_email_address":"'+account.Freshdesk_Support_Email_Address__c+'"}' +
+						'}';
 		}
 		else			
-				bodyContent += ' { "name":"'+account.Name+'", "description":"'+String.valueOf(account.Description)+'", "custom_fields":{"salesforce_account_id":"'+account.Id+'", "support_email_address":"'+account.Freshdesk_Support_Email_Address__c+'"}}'; 	
+				bodyContent += ' { "name":"'+account.Name+'", ' +
+						'"description":"'+String.valueOf(account.Description)+'", ' +
+						'"custom_fields":{"salesforce_account_id":"'+account.Id+'", ' +
+						'"support_email_address":"'+account.Freshdesk_Support_Email_Address__c+'"}}';
 		return 	bodyContent;
 	}
 	
 	//build json string for contact.
 	public static String buildBodyContentforContact(Contact contact)
 	{
-		String bodyContent = ' { "name":"'+contact.Name+'", "email":"'+String.valueOf(contact.Email)+'", "job_title":"'+contact.Title+'", "phone":"'+contact.Phone+'", "mobile":"'+contact.MobilePhone+'", "company_id":'+contact.Account.Support_Name__c+', "custom_fields":{"salesforce_contact_id":"'+contact.Id+'"}}'; 	
+		String bodyContent = ' { "name":"'+contact.Name+'", ' +
+				'"email":"'+String.valueOf(contact.Email)+'", ' +
+				'"job_title":"'+contact.Title+'", ' +
+				'"phone":"'+contact.Phone+'", ' +
+				'"mobile":"'+contact.MobilePhone+'", ' +
+				'"company_id":'+contact.Account.Support_Name__c+', ' +
+				'"custom_fields":{"salesforce_contact_id":"'+contact.Id+'"}}';
 		return 	bodyContent;
 	}  
 	

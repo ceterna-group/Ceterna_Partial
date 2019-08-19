@@ -181,6 +181,14 @@
                             <option name="selected" value="true" />
                           </MetadataEntry>
                           <MetadataEntry>
+                            <option name="name" value="JSONParserXeroContacts" />
+                            <option name="selected" value="true" />
+                          </MetadataEntry>
+                          <MetadataEntry>
+                            <option name="name" value="JSONParserXeroContactsTest" />
+                            <option name="selected" value="true" />
+                          </MetadataEntry>
+                          <MetadataEntry>
                             <option name="name" value="MockCalloutForBatch" />
                             <option name="selected" value="true" />
                           </MetadataEntry>
@@ -306,6 +314,10 @@
                           </MetadataEntry>
                           <MetadataEntry>
                             <option name="name" value="XeroCalloutUtility" />
+                            <option name="selected" value="true" />
+                          </MetadataEntry>
+                          <MetadataEntry>
+                            <option name="name" value="XeroConfigUtils" />
                             <option name="selected" value="true" />
                           </MetadataEntry>
                           <MetadataEntry>

@@ -32,7 +32,7 @@ public with sharing class XeroCalloutUtility {
 
             // Set the content to XML
 //            request.setHeader('Content-Type', 'text/xml');
-            request.setHeader('Content-Type', 'text/xml');
+            request.setHeader('Content-Type', 'application/json');
         }
 
         // Sign the request based on OAuth 1.0a
