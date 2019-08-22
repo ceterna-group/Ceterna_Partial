@@ -26,11 +26,11 @@ public class OpportunityTriggerHandler {
 
     public static void handleNewWins(Map<Id, Opportunity> newRecordMap, Map<Id, Opportunity> oldRecordMap){
 
-        Set<Id> opportunityIds = new Set<Id>();
+        Set<Id> postOpportunityIds = new Set<Id>();
 
         for (Opportunity opp : newRecordMap.values()){
             if (opp.StageName == 'Closed Won' && (!oldRecordMap.containsKey(opp.Id) || oldRecordMap.get(opp.Id).StageName != 'Closed Won')){
-                opportunityIds.add(opp.Id);
+                postOpportunityIds.add(opp.Id);
             }
         }
 
@@ -39,10 +39,14 @@ public class OpportunityTriggerHandler {
 
 
 //        if (!RegressionHandler.isAPIUpdate){
-            postRecordToMavenlink(opportunityIds);
-            postProjectToXero(opportunityIds);
-            postRecordToAsana(opportunityIds);
+//            postRecordToMavenlink(opportunityIds);
+//            postProjectToXero(opportunityIds);
+//            postRecordToAsana(opportunityIds);
 //        }
+
+        if (!postOpportunityIds.isEmpty()){
+            postOpportunities(postOpportunityIds);
+        }
 
         // todo: post to Freshdesk if the project is a support client
     }
@@ -59,7 +63,7 @@ public class OpportunityTriggerHandler {
     }
 
     @Future
-    public static void callloutAllSystems(Set<Id> opportunityIds){
+    public static void postOpportunities(Set<Id> opportunityIds){
 
         // DECLARE CALLOUT BODIES
 
@@ -97,11 +101,83 @@ public class OpportunityTriggerHandler {
         // todo: set Asana team id in custom label so can switch from test to real in prod
 
 
+        // MAVENLINK
+
+        // call the mavenlink endpoint
+        HttpRequest mavenlinkRequest = generateMavenLinkRequest(opportunityMap);
+
+        if (mavenlinkRequest != null){
+            Http mavenlinkCallout           = new Http();
+            HttpResponse mavenlinkResponse  = mavenlinkCallout.send(mavenlinkRequest);
+
+            // now process the body and update the map values
+            if (mavenlinkResponse.getStatusCode() == 200) {
+
+                Map<String, Object> responseMap = (Map<String, Object>) JSON.deserializeUntyped(mavenlinkResponse.getBody());
+                Map<String, Object> resultsMap  = (Map<String, Object>) responseMap.get('workspaces');
+
+                    for (Object mavelinkProject : resultsMap.values()) {
+
+                    Map<String, Object> recordDetails = (Map<String, Object>) mavelinkProject;
+                    if (opportunityMap.containsKey((String)recordDetails.get('title'))) {
+                        opportunityMap.get((String)recordDetails.get('title')).MavenlinkId__c = (String)recordDetails.get('id');
+                    }
+                }
+            }
+        }
+
+        /// END MAVENLINK
+
+
+        // POST RECORD TO ASANA
+
 
         // UPDATE THE OPP VALUES
 
     }
 
+
+    public static HttpRequest generateMavenLinkRequest(Map<String,Opportunity> opportunityMap) {
+
+        List<String> oppJsonStrings     = new List<String>();
+
+        for (Opportunity opp : opportunityMap.values()){
+            if (opp.MavenlinkId__c == null){
+                oppJsonStrings.add(
+                        '  {'+
+                        '       "title" : "' + opp.Job_Number__c + ' - ' + opp.Name + '",' +
+                        '       "creator_role" : "maven", ' +
+                        '       "budgeted" : true, ' +
+                        '       "price" : ' + opp.Amount + ','+
+                        '       "start_date" : "' + String.valueOf(Date.today()) + '",'+
+                        '       "description" : "' + opp.Description + '"'+
+                        '  }');
+            }
+        }
+
+        HttpRequest req = new HttpRequest();
+
+        if (!oppJsonStrings.isEmpty()){
+            String workSpaces = '{ ' +
+                    '"workspaces" : ' +
+                    '  [' +
+                    String.join(oppJsonStrings,',') +
+                    '   ]' +
+                    '}';
+
+            // construct the Mavenlink request
+            req.setEndpoint('https://api.mavenlink.com/api/v1/workspaces');
+            req.setHeader('Accept', 'application/json');
+            req.setHeader('Content-type', 'application/json');
+            req.setHeader('Authorization', 'Bearer 6830b41a8a0257513aaf4cd0dd99190812b72c4ee8078439f3309faa2868db05');
+            req.setMethod('POST');
+            req.setBody(workSpaces);
+
+            return req;
+        } else {
+            return null;
+        }
+    }
 
 
     @Future(Callout=true)
@@ -285,6 +361,7 @@ public class OpportunityTriggerHandler {
             update opportunityMap.values();
         }
 
+        String teamId = Label.AsanaTeamId;
 
 //
 //        // call the mavenlink endpoint
