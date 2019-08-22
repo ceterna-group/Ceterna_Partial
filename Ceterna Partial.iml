@@ -201,6 +201,10 @@
                             <option name="selected" value="true" />
                           </MetadataEntry>
                           <MetadataEntry>
+                            <option name="name" value="OpportunityBinder" />
+                            <option name="selected" value="true" />
+                          </MetadataEntry>
+                          <MetadataEntry>
                             <option name="name" value="OpportunityTriggerHandler" />
                             <option name="selected" value="true" />
                           </MetadataEntry>

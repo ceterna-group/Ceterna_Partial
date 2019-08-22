@@ -71,17 +71,19 @@ global class CreateFreshdeskCompanyContact {
 			Map<String, String> salesforceIdToFreshdeskId = new Map<String, String>();
 			
 			//query for contact records
-			Map<Id, Contact> contactRecords = new Map<Id, Contact>([Select Id, Name,  Email, Title, Phone, MobilePhone, AccountId,  Freshdesk_Id__c, Account.Support_Name__c, Account.Name  from Contact where Id In :contactIds]);
-			for(Contact contact : contactRecords.values())
-			{				
+			Map<Id, Contact> contactRecords = new Map<Id, Contact>(
+								[SELECT Id, Name,  Email, Title, Phone, MobilePhone, AccountId,
+										Freshdesk_Id__c, Account.Support_Name__c, Account.Name
+								FROM Contact WHERE Id IN :contactIds]);
+
+			for(Contact contact : contactRecords.values()) {
 				String responseBody = '';				
 									
 				//build JSON string for request
 				String bodyContent = buildBodyContentforContact(contact);
 				
 				//connect to freshdesk
-				if(bodyContent != '')
-				{						
+				if(bodyContent != '') {
 					Http http = new Http();
 					HttpRequest req = buildWebServiceRequest(bodyContent, 'Contact');
 					HttpResponse res = invokeWebService(http, req, contact.Id, 'Contact');	
@@ -89,16 +91,12 @@ global class CreateFreshdeskCompanyContact {
 				}		
 				
 				//parse the response JSON string for validation error or freshdesk id
-				if(responseBody != null && responseBody != '')
-		        {
+				if(responseBody != null && responseBody != '') {
 		        	//If the response has errors, then email will be sent with errors.
-		        	if(responseBody.contains('Validation failed'))
-		        	{
+		        	if(responseBody.contains('Validation failed')) {
 		        		String errorMessage = parseErrorJSON(responseBody);
 	        			sendErrorEmail('Contact cannot be created on Freshdesk.\n\n Freshdesk validation errors while creating contact.\n'+errorMessage+ '. \n\nSF Contact Name"'+contact.Name+'" . \n SF Related Account Name: '+contact.Account.Name);
-		        	}
-		        	else
-		        	{
+		        	} else {
 		        		//parser the response JSON and get the freshdesk id for created contact 
 		        		salesforceIdToFreshdeskId = getFreshdeskIdfromResponse('salesforce_contact_id', responseBody);      				        		
 			        }
@@ -106,10 +104,9 @@ global class CreateFreshdeskCompanyContact {
 		        
 		        //Update Sf contact with freshdesk id of newly created freshdesk contact.
 		        List<Contact> updateContacts = new List<Contact>();
-				if(!salesforceIdToFreshdeskId.isEmpty())
-				{
-					for(String contactId : salesforceIdToFreshdeskId.KeySet())
-					{
+				if(!salesforceIdToFreshdeskId.isEmpty()) {
+
+					for(String contactId : salesforceIdToFreshdeskId.KeySet()) {
 						Contact con = contactRecords.get(contactId);
 						con.Freshdesk_Id__c = salesforceIdToFreshdeskId.get(contactId);
 						updateContacts.add(con);
@@ -122,25 +119,21 @@ global class CreateFreshdeskCompanyContact {
 	}
 	
 	//Parse json response
-	public static Map<String, String> getFreshdeskIdfromResponse(String sfFieldName, String responseBody)
-	{
+	public static Map<String, String> getFreshdeskIdfromResponse(String sfFieldName, String responseBody) {
+
 		Map<String, String> salesforceIdToFreshdeskId = new Map<String, String>();
 		Long freshdeskId = 0;
     	String sobjId = '';
     	
     	JSONParser jsonParser = JSON.createParser(responseBody);
-    	while(jsonParser.nextToken() != null)
-		{
-    		if(jsonParser.getCurrentToken() == JSONToken.FIELD_NAME )
-			{
+    	while(jsonParser.nextToken() != null) {
+    		if(jsonParser.getCurrentToken() == JSONToken.FIELD_NAME ) {
 			 	String fieldName = jsonParser.getText();
 			 	jsonParser.nextToken();
-			 	if (fieldName == 'id') 
-			 	{
+			 	if (fieldName == 'id') {
 			 		freshdeskId = jsonParser.getLongValue();
 			 	}
-			 	if (fieldName == sfFieldName) 
-			 	{
+			 	if (fieldName == sfFieldName) {
 			 		sobjId = jsonParser.getText();
 			 	}
 			}
@@ -150,23 +143,18 @@ global class CreateFreshdeskCompanyContact {
 	}
 	
 	//Parse json for validation errors
-	public static String parseErrorJSON(String response)
-	{
+	public static String parseErrorJSON(String response) {
 		JSONParser errorParser = JSON.createParser(response);
 		String freshdeskField = '';
 		String errorMessage = '';
-		while(errorParser.nextToken() != null)
-		{
-    		if(errorParser.getCurrentToken() == JSONToken.FIELD_NAME )
-			{
+		while(errorParser.nextToken() != null) {
+    		if(errorParser.getCurrentToken() == JSONToken.FIELD_NAME ) {
 			 	String fieldName = errorParser.getText();
 			 	errorParser.nextToken();
-			 	if (fieldName == 'field') 
-			 	{
+			 	if (fieldName == 'field') {
 			 		freshdeskField = errorParser.getText();
 			 	}
-			 	if (fieldName == 'message') 
-			 	{
+			 	if (fieldName == 'message') {
 			 		errorMessage = errorParser.getText();
 			 	}
 			}
@@ -178,8 +166,8 @@ global class CreateFreshdeskCompanyContact {
 	}
 	
 	//Send an email listing the validation errors.
-	public static void sendErrorEmail(String errorMessage)
-	{
+	public static void sendErrorEmail(String errorMessage) {
+
 		Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
     	String[] toAddresses = new String[] {Label.freshdeskSupportUsername};    
     	mail.setToAddresses(toAddresses);
@@ -192,11 +180,11 @@ global class CreateFreshdeskCompanyContact {
 	}
 	
 	//build json string for account
-	public static String buildBodyContent(Account account)
-	{
+	public static String buildBodyContent(Account account) {
+
 		String bodyContent = '';
-		if((account.Freshdesk_Domain_Names__c != null) && (account.Freshdesk_Domain_Names__c != ''))
-		{	
+		if((account.Freshdesk_Domain_Names__c != null) && (account.Freshdesk_Domain_Names__c != '')) {
+
 				String domainName = '';
 				String[] domains = new String[]{};	
 						
@@ -221,8 +209,7 @@ global class CreateFreshdeskCompanyContact {
 						'"custom_fields":{"salesforce_account_id":"'+account.Id+'", ' +
 						'"support_email_address":"'+account.Freshdesk_Support_Email_Address__c+'"}' +
 						'}';
-		}
-		else			
+		} else
 				bodyContent += ' { "name":"'+account.Name+'", ' +
 						'"description":"'+String.valueOf(account.Description)+'", ' +
 						'"custom_fields":{"salesforce_account_id":"'+account.Id+'", ' +
@@ -231,8 +218,8 @@ global class CreateFreshdeskCompanyContact {
 	}
 	
 	//build json string for contact.
-	public static String buildBodyContentforContact(Contact contact)
-	{
+	public static String buildBodyContentforContact(Contact contact) {
+
 		String bodyContent = ' { "name":"'+contact.Name+'", ' +
 				'"email":"'+String.valueOf(contact.Email)+'", ' +
 				'"job_title":"'+contact.Title+'", ' +
@@ -240,12 +227,13 @@ global class CreateFreshdeskCompanyContact {
 				'"mobile":"'+contact.MobilePhone+'", ' +
 				'"company_id":'+contact.Account.Support_Name__c+', ' +
 				'"custom_fields":{"salesforce_contact_id":"'+contact.Id+'"}}';
+
 		return 	bodyContent;
 	}  
 	
 	//establish connection to freshdesk and return response
-	public static HttpRequest buildWebServiceRequest(String bodyContent, String sobjTypeString)
-	{
+	public static HttpRequest buildWebServiceRequest(String bodyContent, String sobjTypeString) {
+
 		String responseBody = '';
 		
 		String endPointURL = '';
@@ -268,23 +256,29 @@ global class CreateFreshdeskCompanyContact {
 	}
 	
 	//send the request
-	public static HttpResponse invokeWebService(Http http, HttpRequest req, Id dummyIdForTesting, String typeObj)
-	{
+	public static HttpResponse invokeWebService(Http http, HttpRequest req, Id dummyIdForTesting, String typeObj) {
+
 		HttpResponse res = new HttpResponse();
-		try
-		{
-			if(Test.isRunningTest())
-			{
+
+		try {
+			if(Test.isRunningTest()) {
 				if(typeObj == 'Account')
-					res.setBody('{ \"id\": 14000099596, \"name\": \"test company1\", \"description\": \"test description\", \"note\": \"\", \"domains\": [ \"mycompany.com\" ], \"custom_fields\": {\"support_email_address\": \"abc@abc.com\", \"salesforce_account_id\": "'+dummyIdForTesting+'"}, \"created_at\": \"2016-04-18T08:30:59Z\", \"updated_at\": \"2016-04-18T08:30:59Z\"}');
+					res.setBody('{ \"id\": 14000099596, \"name\": \"test company1\", \"description\": \"test description\", ' +
+							'\"note\": \"\", \"domains\": [ \"mycompany.com\" ], ' +
+							'\"custom_fields\": ' +
+							'{\"support_email_address\": \"abc@abc.com\", \"salesforce_account_id\": "'+dummyIdForTesting+'"}, ' +
+							'\"created_at\": \"2016-04-18T08:30:59Z\", \"updated_at\": \"2016-04-18T08:30:59Z\"}');
 				else if(typeObj == 'Contact')
-					res.setBody('{\"active\":false,\"address\":null,\"company_id\":14000099596,\"deleted\":false,\"description\":null,\"email\":\"rrr@rr.com\",\"id\":14001381241,\"job_title\":\"Marketing Executive\",\"language\":\"en\",\"mobile\":\"07897623235\",\"name\":\"test contact\",\"phone\":\"01494 333333\",\"time_zone\":\"Eastern Time (US & Canada)\",\"twitter_id\":null,\"custom_fields\":{\"salesforce_contact_id\":"'+dummyIdForTesting+'"},\"other_emails\":[],\"created_at\":\"2016-04-19T15:39:26Z\",\"updated_at\":\"2016-04-19T15:39:26Z\"}');
+					res.setBody('{\"active\":false,\"address\":null,\"company_id\":14000099596,\"deleted\":false,' +
+							'\"description\":null,\"email\":\"rrr@rr.com\",\"id\":14001381241,' +
+							'\"job_title\":\"Marketing Executive\",\"language\":\"en\",\"mobile\":\"07897623235\",' +
+							'\"name\":\"test contact\",\"phone\":\"01494 333333\",\"time_zone\":\"Eastern Time (US & Canada)\"' +
+							',\"twitter_id\":null,\"custom_fields\":{\"salesforce_contact_id\":"'+dummyIdForTesting+'"},' +
+							'\"other_emails\":[],\"created_at\":\"2016-04-19T15:39:26Z\",\"updated_at\":\"2016-04-19T15:39:26Z\"}');
+			} else {
+				res = http.send(req);
 			}
-			else
-				res = http.send(req);  
-		}
-		catch(System.CalloutException e)
-		{
+		} catch (System.CalloutException e) {
 			System.debug('Callout error: '+ e);
         	System.debug(res.toString());
 		}

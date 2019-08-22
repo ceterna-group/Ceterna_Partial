@@ -43,6 +43,8 @@ public class OpportunityTriggerHandler {
             postProjectToXero(opportunityIds);
             postRecordToAsana(opportunityIds);
 //        }
+
+        // todo: post to Freshdesk if the project is a support client
     }
 
     public static void generateInvoices(Map<Id, Opportunity> newRecordMap, Map<Id, Opportunity> oldRecordMap){
@@ -52,18 +54,54 @@ public class OpportunityTriggerHandler {
         for (Opportunity opp : newRecordMap.values()){
             if (opp.StageName == 'Closed Won' && (!oldRecordMap.containsKey(opp.Id) || oldRecordMap.get(opp.Id).StageName != 'Closed Won')){
 
-                // create entries based on invoice schedule type
-
             }
+        }
+    }
+
+    @Future
+    public static void callloutAllSystems(Set<Id> opportunityIds){
+
+        // DECLARE CALLOUT BODIES
+
+        // XERO CUSTOMER BODY
+
+        // XERO PROJECT BODY
+
+        // ASANA PROJECT BODY
+
+        // FRESHDESK CUSTOMER BODY
+
+        // MAVENLINK PROJECT BODY
+
+
+        // declare map of all opportunities in trigger
+        Map<String,Opportunity> opportunityMap = new Map<String,Opportunity>();
+
+        // construct map from database values
+        for (Opportunity opp : [SELECT Id, Name, Job_Number__c, Amount, Description, AccountId, Account.XeroContactId__c,
+                                        MavenlinkId__c, AsanaId__c, XeroId__c, FreshdeskId__c, Delivery_support__c
+                                FROM Opportunity WHERE Id IN :opportunityIds]){
+            opportunityMap.put(opp.Job_Number__c + ' - ' + opp.Name,opp);
         }
 
 
+        // todo: CHECK IF PARENT IS CUSTOMER IN XERO
+
+        // todo: CHECK IF PARENT IS CUSTOMER IN FRESHDESK
 
 
-//        Invoice__c invoice
+        // todo: in each iteration, only add the opp to the callout list if it is missing the required attributes
+        // (i.e. it may already have an asana id for example)
 
+
+        // todo: set Asana team id in custom label so can switch from test to real in prod
+
+
+
+        // UPDATE THE OPP VALUES
 
     }
+
 
 
     @Future(Callout=true)
@@ -71,16 +109,10 @@ public class OpportunityTriggerHandler {
 
         Map<String,Opportunity> opportunityMap = new Map<String,Opportunity>();
 
-        for (Opportunity opp : [SELECT Id, Name, JobNumber__c, Amount, Description, AccountId, Account.XeroContactId__c
+        for (Opportunity opp : [SELECT Id, Name, Job_Number__c, Amount, Description, AccountId, Account.XeroContactId__c
                                 FROM Opportunity WHERE Id IN :opportunityIds]){
-
-
-
-            opportunityMap.put(opp.JobNumber__c + ' - ' + opp.Name,opp);
+            opportunityMap.put(opp.Job_Number__c + ' - ' + opp.Name,opp);
         }
-
-
-
 
         List<String> oppJsonStrings     = new List<String>();
 
@@ -89,7 +121,7 @@ public class OpportunityTriggerHandler {
             oppJsonStrings.add(
                     '  {'+
                     '       "contactId" : "ba8c9d7d-ce04-456b-94dd-4bcb44e4b3ab",' +
-                    '       "name" : "' + opp.JobNumber__c + ' - ' + opp.Name + '"' +
+                    '       "name" : "' + opp.Job_Number__c + ' - ' + opp.Name + '"' +
                     '  }');
         }
 
@@ -131,9 +163,9 @@ public class OpportunityTriggerHandler {
 
         Map<String,Opportunity> opportunityMap = new Map<String,Opportunity>();
 
-        for (Opportunity opp : [SELECT Id, Name, JobNumber__c, Amount, Description
+        for (Opportunity opp : [SELECT Id, Name, Job_Number__c, Amount, Description
                                 FROM Opportunity WHERE Id IN :opportunityIds]){
-            opportunityMap.put(opp.JobNumber__c + ' - ' + opp.Name,opp);
+            opportunityMap.put(opp.Job_Number__c + ' - ' + opp.Name,opp);
         }
 
         List<String> oppJsonStrings     = new List<String>();
@@ -142,7 +174,7 @@ public class OpportunityTriggerHandler {
 
             oppJsonStrings.add(
                 '  {'+
-                '       "title" : "' + opp.JobNumber__c + ' - ' + opp.Name + '",' +
+                '       "title" : "' + opp.Job_Number__c + ' - ' + opp.Name + '",' +
                 '       "creator_role" : "maven", ' +
                 '       "budgeted" : true, ' +
                 '       "price" : ' + opp.Amount + ','+
@@ -197,9 +229,9 @@ public class OpportunityTriggerHandler {
 
         Map<String,Opportunity> opportunityMap = new Map<String,Opportunity>();
 
-        for (Opportunity opp : [SELECT Id, Name, JobNumber__c, Amount, Description
-        FROM Opportunity WHERE Id IN :opportunityIds]){
-            opportunityMap.put(opp.JobNumber__c + ' - ' + opp.Name,opp);
+        for (Opportunity opp : [SELECT Id, Name, Job_Number__c, Amount, Description
+                                FROM Opportunity WHERE Id IN :opportunityIds]){
+            opportunityMap.put(opp.Job_Number__c + ' - ' + opp.Name,opp);
         }
 
         List<String> oppJsonStrings     = new List<String>();
@@ -208,12 +240,8 @@ public class OpportunityTriggerHandler {
 
             oppJsonStrings.add(
                     '  {'+
-                            '       "title" : "' + opp.JobNumber__c + ' - ' + opp.Name + '",' +
-                            '       "creator_role" : "maven", ' +
-                            '       "budgeted" : true, ' +
-                            '       "price" : ' + opp.Amount + ','+
-                            '       "start_date" : "' + String.valueOf(Date.today()) + '",'+
-                            '       "description" : "' + opp.Description + '"'+
+                            '       "name" : "' + opp.Job_Number__c + ' - ' + opp.Name + '",' +
+                            '       "notes" : "' + opp.Description + '"'+
                             '  }');
         }
 
@@ -256,6 +284,50 @@ public class OpportunityTriggerHandler {
             RegressionHandler.isAPIUpdate = true;
             update opportunityMap.values();
         }
+
+
+//
+//        // call the mavenlink endpoint
+//        Http mavenlinkCallout = new Http();
+//        HttpRequest req = new HttpRequest();
+////req.setEndpoint('https://app.asana.com/api/1.0/projects');
+//        req.setEndpoint('https://app.asana.com/api/1.0/batch');
+//        req.setHeader('Accept', 'application/json');
+//        req.setHeader('Content-type', 'application/json');
+//        req.setHeader('Authorization', 'Bearer 0/8e1a1ec8f09bb7c93e80376c50f7bcaf');
+//        req.setMethod('POST');
+////req.setBody('notes=These are things we want to purchase.&name=Things to Buy&workspace=14916,notes=These are things we want to purchase.&name=Things to Buy&workspace=14916');
+//
+//        String body = '{'+
+//        '"data": {'+
+//        '"actions": ['+
+//        '{'+
+//        '    "method": "post",'+
+//        '    "relative_path": "/projects",' +
+//        '"data" : {' +
+//        '"name" : "yyy",' +
+//        '"team" : 1134872979756503' +
+//        '}'+
+//        '},' +
+//        '{'+
+//        '    "method": "post",'+
+//        '    "relative_path": "/projects",' +
+//        '"data" : {' +
+//        '"name" : "xxx",' +
+//        '"team" : 1134872979756503' +
+//        '}'+
+//        '}' +
+//        ']' +
+//        '}' +
+//        '}';
+//
+//        req.setBody(body);
+//
+//        HttpResponse res = mavenlinkCallout.send(req);
+//
+//        system.debug('res is ' + res.getStatusCode() + '  ' + res.getBody());
+
+
     }
 
 
