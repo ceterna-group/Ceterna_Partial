@@ -1,0 +1,64 @@
+<!--
+ - Created by ronanwilliams on 2019-07-17.
+ -->
+
+<aura:component description="Quick links" controller="OppQuickLinksController"
+                implements="flexipage:availableForAllPageTypes,force:hasRecordId" access="global">
+
+
+    <aura:attribute name="opportunity" type="Opportunity" />
+
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+
+    <force:recordData aura:id="recordLoader"
+                      recordId="{!v.recordId}"
+                      fields="AsanaId__c,MavenlinkId__c,FreshdeskId__c,XeroId__c"
+                      targetFields="{!v.opportunity}"/>
+
+    <lightning:card >
+
+<!--        AsanaId__c: {!v.opportunity.AsanaId__c}-->
+<!--        MavenlinkId__c: {!v.opportunity.MavenlinkId__c}-->
+<!--        FreshdeskId__c: {!v.opportunity.FreshdeskId__c}-->
+<!--        XeroId__c: {!v.opportunity.XeroId__c}-->
+
+        <lightning:layout>
+<!--            <div>QUICK LINKS</div>-->
+
+<!--            https://go.xero.com/Contacts/View/8839e7b5-3036-4ddb-8a66-b0789f59fb86-->
+
+            <div class="container">
+                <div class="linkBlock">
+                    <div class="vertical">
+                        <img src="{!$Resource.MavenlinkLogo}" width="100"/>
+                    </div>
+                </div>
+                <div class="linkBlock">
+                    <div class="vertical">
+                        <img src="{!$Resource.AsanaLogo}" width="75"/>
+                    </div>
+                </div>
+
+                <div class="linkBlock">
+                    <div class="vertical">
+                        <img src="{!$Resource.XeroLogo}" width="50"/>
+                    </div>
+                </div>
+
+                <div class="linkBlock">
+                    <div class="vertical">
+                        <img src="{!$Resource.FreshdeskLogo}" width="100"/>
+                    </div>
+                </div>
+            </div>
+
+
+        </lightning:layout>
+
+
+
+    </lightning:card>
+
+
+
+</aura:component>

@@ -34,21 +34,9 @@ public class OpportunityTriggerHandler {
             }
         }
 
-        // todo: add project to Xero
-
-
-
-//        if (!RegressionHandler.isAPIUpdate){
-//            postRecordToMavenlink(opportunityIds);
-//            postProjectToXero(opportunityIds);
-//            postRecordToAsana(opportunityIds);
-//        }
-
         if (!postOpportunityIds.isEmpty()){
             postOpportunities(postOpportunityIds);
         }
-
-        // todo: post to Freshdesk if the project is a support client
     }
 
     public static void generateInvoices(Map<Id, Opportunity> newRecordMap, Map<Id, Opportunity> oldRecordMap){
@@ -62,21 +50,8 @@ public class OpportunityTriggerHandler {
         }
     }
 
-    @Future
+    @Future(Callout=true)
     public static void postOpportunities(Set<Id> opportunityIds){
-
-        // DECLARE CALLOUT BODIES
-
-        // XERO CUSTOMER BODY
-
-        // XERO PROJECT BODY
-
-        // ASANA PROJECT BODY
-
-        // FRESHDESK CUSTOMER BODY
-
-        // MAVENLINK PROJECT BODY
-
 
         // declare map of all opportunities in trigger
         Map<String,Opportunity> opportunityMap = new Map<String,Opportunity>();
@@ -88,22 +63,7 @@ public class OpportunityTriggerHandler {
             opportunityMap.put(opp.Job_Number__c + ' - ' + opp.Name,opp);
         }
 
-
-        // todo: CHECK IF PARENT IS CUSTOMER IN XERO
-
-        // todo: CHECK IF PARENT IS CUSTOMER IN FRESHDESK
-
-
-        // todo: in each iteration, only add the opp to the callout list if it is missing the required attributes
-        // (i.e. it may already have an asana id for example)
-
-
-        // todo: set Asana team id in custom label so can switch from test to real in prod
-
-
-        // MAVENLINK
-
-        // call the mavenlink endpoint
+        // POST RECORD AS WORKSPACE TO MAVENLINK
         HttpRequest mavenlinkRequest = generateMavenLinkRequest(opportunityMap);
 
         if (mavenlinkRequest != null){
@@ -126,16 +86,68 @@ public class OpportunityTriggerHandler {
             }
         }
 
-        /// END MAVENLINK
+        // POST RECORD TO PROJECT ASANA
+        HttpRequest asanaRequest = generateAsanaRequest(opportunityMap);
+
+        if (asanaRequest != null){
+            Http asanaCallout           = new Http();
+            HttpResponse asanaResponse  = asanaCallout.send(asanaRequest);
+
+            // now process the body and update the map values
+            if (asanaResponse.getStatusCode() == 200) {
+                Map<String,Object> responseMap  = (Map<String,Object>) JSON.deserializeUntyped(asanaResponse.getBody());
+                List<Object> data               = (List<Object>)responseMap.get('data');
+                Object bodyObject               = (Object)data[0];
+                Map<String,Object> bodyMap      = (Map<String,Object>)bodyObject;
+                Map<String,Object> records      = (Map<String,Object>)bodyMap.get('body');
+
+                for (Object asanaProject : records.values()) {
+                    Map<String, Object> recordDetails = (Map<String, Object>) asanaProject;
+                    if (opportunityMap.containsKey((String)recordDetails.get('name'))) {
+                        opportunityMap.get((String)recordDetails.get('name')).AsanaId__c = (String)recordDetails.get('gid');
+                    }
+                }
+            }
+        }
+
+        // POST RECORD AS PROJECT TO XERO
+        List<Account> newCustomers = new List<Account>();
+
+        for (Opportunity opp : opportunityMap.values()){
+            // if the opportunity Account does not exist in Xero, add a new customer
+            if (opp.Account.XeroContactId__c == null || opp.Account.XeroContactId__c == 'RETRY'){
+                // post opp account
+            }
 
 
-        // POST RECORD TO ASANA
+
+            if ((opp.XeroId__c == null || opp.XeroId__c == 'RETRY') && (opp.Account.XeroContactId__c != null && opp.Account.XeroContactId__c != 'RETRY')){
+                String projectJson = '  { "contactId" : "ba8c9d7d-ce04-456b-94dd-4bcb44e4b3ab",' +
+                                     '    "name" : "' + opp.Job_Number__c + ' - ' + opp.Name + '"}';
+
+                opp.Account.XeroContactId__c = 'this';
+
+                HttpResponse xeroProjectResponse = XeroCalloutUtility.executeCallout('POST', 'projects','Projects', projectJson);
+
+                if (xeroProjectResponse != null && xeroProjectResponse.getStatusCode() == 201){
+                    Map<String,Object> valueMap = (Map<String,Object>) JSON.deserializeUntyped(xeroProjectResponse.getBody());
+                    opp.XeroId__c = valueMap.containsKey('projectId') ? (String)valueMap.get('projectId') : 'RETRY';
+
+                }
+            }
+        }
+
+
+
+
+
+
+        // GENERATE REQUEST FOR ANY RECORDS MISSING CUSTOMER ID
 
 
         // UPDATE THE OPP VALUES
-
+        update opportunityMap.values();
     }
-
 
     public static HttpRequest generateMavenLinkRequest(Map<String,Opportunity> opportunityMap) {
 
@@ -179,233 +191,89 @@ public class OpportunityTriggerHandler {
         }
     }
 
-
-    @Future(Callout=true)
-    public static void postProjectToXero(Set<Id> opportunityIds) {
-
-        Map<String,Opportunity> opportunityMap = new Map<String,Opportunity>();
-
-        for (Opportunity opp : [SELECT Id, Name, Job_Number__c, Amount, Description, AccountId, Account.XeroContactId__c
-                                FROM Opportunity WHERE Id IN :opportunityIds]){
-            opportunityMap.put(opp.Job_Number__c + ' - ' + opp.Name,opp);
-        }
-
-        List<String> oppJsonStrings     = new List<String>();
-
-        for (Opportunity opp : opportunityMap.values()){
-
-            oppJsonStrings.add(
-                    '  {'+
-                    '       "contactId" : "ba8c9d7d-ce04-456b-94dd-4bcb44e4b3ab",' +
-                    '       "name" : "' + opp.Job_Number__c + ' - ' + opp.Name + '"' +
-                    '  }');
-        }
-
-        String projects = '' +
-                String.join(oppJsonStrings,',') +
-                '';
-
-        // call the Xero endpoint
-
-        HttpResponse response = XeroCalloutUtility.executeCallout('POST', 'projects','Projects', projects);
-
-        system.debug(response.getStatusCode() + ' ' + response.getBody());
-
-
-        if (response.getStatusCode() == 200) {
-
-//            Map<String, Object> responseMap = (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
-//            Map<String, Object> resultsMap  = (Map<String, Object>) responseMap.get('workspaces');
-//
-//            for (Object mavelinkProject : resultsMap.values()) {
-//
-//                Map<String, Object> recordDetails = (Map<String, Object>) mavelinkProject;
-//
-//                if (opportunityMap.containsKey((String) recordDetails.get('title'))) {
-//                    opportunityMap.get((String) recordDetails.get('title')).MavenlinkId__c =
-//                            (String) recordDetails.get('id');
-//                }
-//            }
-//
-//            RegressionHandler.isAPIUpdate = true;
-//            update opportunityMap.values();
-        }
-
-
-    }
-
-    @Future(Callout=true)
-    public static void postRecordToMavenlink(Set<Id> opportunityIds) {
-
-        Map<String,Opportunity> opportunityMap = new Map<String,Opportunity>();
-
-        for (Opportunity opp : [SELECT Id, Name, Job_Number__c, Amount, Description
-                                FROM Opportunity WHERE Id IN :opportunityIds]){
-            opportunityMap.put(opp.Job_Number__c + ' - ' + opp.Name,opp);
-        }
-
-        List<String> oppJsonStrings     = new List<String>();
-
-        for (Opportunity opp : opportunityMap.values()){
-
-            oppJsonStrings.add(
-                '  {'+
-                '       "title" : "' + opp.Job_Number__c + ' - ' + opp.Name + '",' +
-                '       "creator_role" : "maven", ' +
-                '       "budgeted" : true, ' +
-                '       "price" : ' + opp.Amount + ','+
-                '       "start_date" : "' + String.valueOf(Date.today()) + '",'+
-                '       "description" : "' + opp.Description + '"'+
-                '  }');
-        }
-
-        String workSpaces = '{ ' +
-                '"workspaces" : ' +
-                '  [' +
-                        String.join(oppJsonStrings,',') +
-                '   ]' +
-                '}';
-
-        // call the mavenlink endpoint
-        Http mavenlinkCallout = new Http();
-        HttpRequest req = new HttpRequest();
-        req.setEndpoint('https://api.mavenlink.com/api/v1/workspaces');
-        req.setHeader('Accept', 'application/json');
-        req.setHeader('Content-type', 'application/json');
-        req.setHeader('Authorization', 'Bearer 6830b41a8a0257513aaf4cd0dd99190812b72c4ee8078439f3309faa2868db05');
-        req.setMethod('POST');
-        req.setBody(workSpaces);
-
-        HttpResponse res = mavenlinkCallout.send(req);
-
-        system.debug('res is ' + res.getStatusCode() + '  ' + res.getBody());
-
-        if (res.getStatusCode() == 200) {
-
-            Map<String, Object> responseMap = (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
-            Map<String, Object> resultsMap  = (Map<String, Object>) responseMap.get('workspaces');
-
-            for (Object mavelinkProject : resultsMap.values()) {
-
-                Map<String, Object> recordDetails = (Map<String, Object>) mavelinkProject;
-
-                if (opportunityMap.containsKey((String) recordDetails.get('title'))) {
-                    opportunityMap.get((String) recordDetails.get('title')).MavenlinkId__c =
-                            (String) recordDetails.get('id');
-                }
-            }
-
-            RegressionHandler.isAPIUpdate = true;
-            update opportunityMap.values();
-        }
-    }
-
-    @Future(Callout=true)
-    public static void postRecordToAsana(Set<Id> opportunityIds) {
-
-        Map<String,Opportunity> opportunityMap = new Map<String,Opportunity>();
-
-        for (Opportunity opp : [SELECT Id, Name, Job_Number__c, Amount, Description
-                                FROM Opportunity WHERE Id IN :opportunityIds]){
-            opportunityMap.put(opp.Job_Number__c + ' - ' + opp.Name,opp);
-        }
-
-        List<String> oppJsonStrings     = new List<String>();
-
-        for (Opportunity opp : opportunityMap.values()){
-
-            oppJsonStrings.add(
-                    '  {'+
-                            '       "name" : "' + opp.Job_Number__c + ' - ' + opp.Name + '",' +
-                            '       "notes" : "' + opp.Description + '"'+
-                            '  }');
-        }
-
-        String workSpaces = '{ ' +
-                '"workspaces" : ' +
-                '  [' +
-                String.join(oppJsonStrings,',') +
-                '   ]' +
-                '}';
-
-        // call the mavenlink endpoint
-        Http mavenlinkCallout = new Http();
-        HttpRequest req = new HttpRequest();
-        req.setEndpoint('https://app.asana.com/api/1.0/projects');
-        req.setHeader('Accept', 'application/json');
-        req.setHeader('Content-type', 'application/json');
-        req.setHeader('Authorization', 'Bearer 0/8e1a1ec8f09bb7c93e80376c50f7bcaf');
-        req.setMethod('POST');
-        req.setBody('notes=These are things we want to purchase.&name=Things to Buy&workspace=14916');
-
-        HttpResponse res = mavenlinkCallout.send(req);
-
-        system.debug('res is ' + res.getStatusCode() + '  ' + res.getBody());
-
-        if (res.getStatusCode() == 200) {
-
-            Map<String, Object> responseMap = (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
-            Map<String, Object> resultsMap  = (Map<String, Object>) responseMap.get('workspaces');
-
-            for (Object mavelinkProject : resultsMap.values()) {
-
-                Map<String, Object> recordDetails = (Map<String, Object>) mavelinkProject;
-
-                if (opportunityMap.containsKey((String) recordDetails.get('title'))) {
-                    opportunityMap.get((String) recordDetails.get('title')).MavenlinkId__c =
-                            (String) recordDetails.get('id');
-                }
-            }
-
-            RegressionHandler.isAPIUpdate = true;
-            update opportunityMap.values();
-        }
+    public static HttpRequest generateAsanaRequest(Map<String,Opportunity> opportunityMap){
 
         String teamId = Label.AsanaTeamId;
 
-//
-//        // call the mavenlink endpoint
-//        Http mavenlinkCallout = new Http();
-//        HttpRequest req = new HttpRequest();
-////req.setEndpoint('https://app.asana.com/api/1.0/projects');
-//        req.setEndpoint('https://app.asana.com/api/1.0/batch');
-//        req.setHeader('Accept', 'application/json');
-//        req.setHeader('Content-type', 'application/json');
-//        req.setHeader('Authorization', 'Bearer 0/8e1a1ec8f09bb7c93e80376c50f7bcaf');
-//        req.setMethod('POST');
-////req.setBody('notes=These are things we want to purchase.&name=Things to Buy&workspace=14916,notes=These are things we want to purchase.&name=Things to Buy&workspace=14916');
-//
-//        String body = '{'+
-//        '"data": {'+
-//        '"actions": ['+
-//        '{'+
-//        '    "method": "post",'+
-//        '    "relative_path": "/projects",' +
-//        '"data" : {' +
-//        '"name" : "yyy",' +
-//        '"team" : 1134872979756503' +
-//        '}'+
-//        '},' +
-//        '{'+
-//        '    "method": "post",'+
-//        '    "relative_path": "/projects",' +
-//        '"data" : {' +
-//        '"name" : "xxx",' +
-//        '"team" : 1134872979756503' +
-//        '}'+
-//        '}' +
-//        ']' +
-//        '}' +
-//        '}';
-//
-//        req.setBody(body);
-//
-//        HttpResponse res = mavenlinkCallout.send(req);
-//
-//        system.debug('res is ' + res.getStatusCode() + '  ' + res.getBody());
+        List<String> oppJsonStrings     = new List<String>();
 
+        for (Opportunity opp : opportunityMap.values()){
+            if (opp.AsanaId__c == null){
+                oppJsonStrings.add(
+                        '{'+
+                        '   "method": "post",'+
+                        '   "relative_path": "/projects",' +
+                        '   "data" : {' +
+                        '       "name" : "' + opp.Job_Number__c + ' - ' + opp.Name + '",' +
+                        '       "team" : ' + teamId +
+                        '   }'+
+                        '}');
+            }
+        }
+
+        HttpRequest req = new HttpRequest();
+
+        if (!oppJsonStrings.isEmpty()){
+            String batchRequestBody = '{ ' +
+                    '   "data": {'+
+                    '       "actions": ['+
+                                String.join(oppJsonStrings,',') +
+                    '           ]' +
+                    '   }' +
+                    '}';
+
+            // construct the Asana request
+            req.setEndpoint('https://app.asana.com/api/1.0/batch');
+            req.setHeader('Accept', 'application/json');
+            req.setHeader('Content-type', 'application/json');
+            req.setHeader('Authorization', 'Bearer 0/8e1a1ec8f09bb7c93e80376c50f7bcaf');
+            req.setMethod('POST');
+            req.setBody(batchRequestBody);
+
+            return req;
+        } else {
+            return null;
+        }
 
     }
 
 
+//    public static HttpResponse generateXeroProjectRequest(String name, String customerId){
+//
+//        List<String> oppJsonStrings     = new List<String>();
+//
+//        String conString = 'ba8c9d7d-ce04-456b-94dd-4bcb44e4b3ab';
+//        String conString2 = '8839e7b5-3036-4ddb-8a66-b0789f59fb86';
+//
+//        for (Opportunity opp : opportunityMap.values()){
+//            if (opp.XeroId__c == null){
+//                system.debug('build for ' + opp.Name);
+//                oppJsonStrings.add(
+//                    '  {'+
+////                    '       "contactId" : "' + opp.Account.XeroContactId__c + '",' +
+//                    '       "contactId" : "' + (conString == null ? conString2 : conString) + '",' +
+////                    '       "contactId" : "ba8c9d7d-ce04-456b-94dd-4bcb44e4b3ab",' +
+//                    '       "name" : "' + opp.Job_Number__c + ' - ' + opp.Name + '"' +
+//                    '  }');
+//
+//                    conString = null;
+//            }
+//        }
+//
+//        if (!oppJsonStrings.isEmpty()){
+//            String projects = '' +
+//                    String.join(oppJsonStrings,',') +
+//                    '';
+//
+//            system.debug(projects);
+//
+//            // call the Xero endpoint
+//            HttpResponse response = XeroCalloutUtility.executeCallout('POST', 'projects','Projects', projects);
+//
+//            return response;
+//
+//        } else {
+//            return null;
+//        }
+//    }
 }
