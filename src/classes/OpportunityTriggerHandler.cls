@@ -57,7 +57,11 @@ public class OpportunityTriggerHandler {
         Map<String,Opportunity> opportunityMap = new Map<String,Opportunity>();
 
         // construct map from database values
-        for (Opportunity opp : [SELECT Id, Name, Job_Number__c, Amount, Description, AccountId, Account.XeroContactId__c,
+        for (Opportunity opp : [SELECT Id, Name, Job_Number__c, Amount, Description,
+                                        AccountId, Account.Name, Account.XeroContactId__c, Account.Website,
+                                        Account.BillingStreet, Account.BillingPostalCode, Account.BillingCountry,
+                                        Account.BillingState, Account.BillingCity, Account.Registered_Company_Number__c,
+                                        Account.Phone,
                                         MavenlinkId__c, AsanaId__c, XeroId__c, FreshdeskId__c, Delivery_support__c
                                 FROM Opportunity WHERE Id IN :opportunityIds]){
             opportunityMap.put(opp.Job_Number__c + ' - ' + opp.Name,opp);
@@ -117,17 +121,46 @@ public class OpportunityTriggerHandler {
             // if the opportunity Account does not exist in Xero, add a new customer
             if (opp.Account.XeroContactId__c == null || opp.Account.XeroContactId__c == 'RETRY'){
                 // post opp account
+
+                String accountJson = '{ ' +
+                        '   "Name" : "' + opp.Account.Name + '",' +
+                        '   "ContactStatus" : "ACTIVE",' +
+                        '   "Phones" : [{' +
+                        '       "PhoneType" : "DEFAULT", ' +
+                        '       "PhoneNumber" : "' + (opp.Account.Phone == null ? '' : opp.Account.Phone) + '" ' +
+                        '   }],' +
+                        '   "Addresses" : [{' +
+                        '       "AddressType" : "POBOX",' +
+                        '       "AddressLine 1" : "' + (opp.Account.BillingStreet == null ? '' : opp.Account.BillingStreet) + '",' +
+                        '       "City" : "' + (opp.Account.BillingCity == null ? '' : opp.Account.BillingCity) + '",' +
+                        '       "Region" : "' + (opp.Account.BillingState == null ? '' : opp.Account.BillingState) + '",' +
+                        '       "Country" : "' + (opp.Account.BillingCountry == null ? '' : opp.Account.BillingCountry) + '",' +
+                        '       "PostalCode" : "' + (opp.Account.BillingPostalCode == null ? '' : opp.Account.BillingPostalCode) + '"' +
+                        '   }]' +
+                        '}';
+                HttpResponse xeroContactResponse = XeroCalloutUtility.executeCallout('POST', 'api','Contacts', accountJson);
+
+                system.debug(xeroContactResponse.getStatusCode());
+
+
+                if (xeroContactResponse != null && xeroContactResponse.getStatusCode() == 200){
+                    Map<String,Object> valueMap = (Map<String,Object>) JSON.deserializeUntyped(xeroContactResponse.getBody());
+                    opp.Account.XeroContactId__c = valueMap.containsKey('ContactID') ? (String)valueMap.get('ContactID') : 'RETRY';
+                    newCustomers.add(new Account(Id = opp.AccountId, XeroContactId__c = opp.Account.XeroContactId__c));
+                    System.debug('first opp acc id is ' + opp.Account.XeroContactId__c);
+
+                }
             }
 
-
+            System.debug('then opp acc id is ' + opp.Account.XeroContactId__c);
 
             if ((opp.XeroId__c == null || opp.XeroId__c == 'RETRY') && (opp.Account.XeroContactId__c != null && opp.Account.XeroContactId__c != 'RETRY')){
-                String projectJson = '  { "contactId" : "ba8c9d7d-ce04-456b-94dd-4bcb44e4b3ab",' +
+                String projectJson = '  { "contactId" : "' + opp.Account.XeroContactId__c + '",' +
                                      '    "name" : "' + opp.Job_Number__c + ' - ' + opp.Name + '"}';
-
-                opp.Account.XeroContactId__c = 'this';
-
                 HttpResponse xeroProjectResponse = XeroCalloutUtility.executeCallout('POST', 'projects','Projects', projectJson);
+
+                system.debug(xeroProjectResponse.getStatusCode());
+                system.debug(xeroProjectResponse.getBody());
 
                 if (xeroProjectResponse != null && xeroProjectResponse.getStatusCode() == 201){
                     Map<String,Object> valueMap = (Map<String,Object>) JSON.deserializeUntyped(xeroProjectResponse.getBody());
@@ -136,6 +169,8 @@ public class OpportunityTriggerHandler {
                 }
             }
         }
+
+        update newCustomers;
 
 
 

@@ -6,31 +6,33 @@
                 implements="flexipage:availableForAllPageTypes,force:hasRecordId" access="global">
 
 
-    <aura:attribute name="opportunity" type="Opportunity" />
+    <aura:attribute name="opp" type="Opportunity" />
 
     <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
 
     <force:recordData aura:id="recordLoader"
                       recordId="{!v.recordId}"
                       fields="AsanaId__c,MavenlinkId__c,FreshdeskId__c,XeroId__c"
-                      targetFields="{!v.opportunity}"/>
+                      targetFields="{!v.opp}"/>
 
-    <lightning:card >
+<!--    <lightning:card >-->
 
-<!--        AsanaId__c: {!v.opportunity.AsanaId__c}-->
-<!--        MavenlinkId__c: {!v.opportunity.MavenlinkId__c}-->
-<!--        FreshdeskId__c: {!v.opportunity.FreshdeskId__c}-->
-<!--        XeroId__c: {!v.opportunity.XeroId__c}-->
+        AsanaId__c: {!v.opportunity.AsanaId__c}
+        MavenlinkId__c: {!v.opportunity.MavenlinkId__c}
+        FreshdeskId__c: {!v.opportunity.FreshdeskId__c}
+        XeroId__c: {!v.opportunity.XeroId__c}
 
-        <lightning:layout>
+<!--        <lightning:layout>-->
 <!--            <div>QUICK LINKS</div>-->
 
 <!--            https://go.xero.com/Contacts/View/8839e7b5-3036-4ddb-8a66-b0789f59fb86-->
 
+    <div class="slds-card">
             <div class="container">
                 <div class="linkBlock">
                     <div class="vertical">
-                        <img src="{!$Resource.MavenlinkLogo}" width="100"/>
+                        <img src="{!$Resource.MavenlinkLogo}" width="100"
+                             class="{!or(not(v.opp.MavenlinkId__c),v.opp.MavenlinkId__c == 'RETRY') ? 'empty' : ''}"/>
                     </div>
                 </div>
                 <div class="linkBlock">
@@ -50,14 +52,25 @@
                         <img src="{!$Resource.FreshdeskLogo}" width="100"/>
                     </div>
                 </div>
+
             </div>
 
+<!--        </lightning:layout>-->
+<!--        <lightning:layout>-->
+            <div class="container">
+                <div class="linkBlock">
+                    <div class="vertical">
+                        <img src="{!$Resource.SlackLogo}" width="100"/>
+                    </div>
+                </div>
+            </div>
+    </div>
 
-        </lightning:layout>
+<!--        </lightning:layout>-->
 
 
 
-    </lightning:card>
+<!--    </lightning:card>-->
 
 
 

@@ -22,6 +22,7 @@
     width: 100%;
     padding: 5px;
     display: flex;
+    position: relative;
 }
 
 .THIS .vertical {
@@ -30,4 +31,9 @@
     top: 55%;
     -ms-transform: translateY(-50%);
     transform: translateY(-50%);
+}
+
+.THIS .empty {
+    -webkit-filter: grayscale(1); /* Google Chrome, Safari 6+ & Opera 15+ */
+    filter: grayscale(1); /* Microsoft Edge and Firefox 35+ */
 }
