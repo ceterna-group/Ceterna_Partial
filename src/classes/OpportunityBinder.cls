@@ -43,7 +43,6 @@ public with sharing class OpportunityBinder {
             Integer totalFalse = 0;
             Integer totalTrue = 0;
 
-
             system.debug('mav res map ' + responseMap);
 
             if (responseMap.containsKey('workspaces')){
@@ -59,55 +58,24 @@ public with sharing class OpportunityBinder {
                 for (Object projectObject : projectObjects.values()){
 
 
-                    System.debug(projectObject);
+//                    System.debug(projectObject);
 
                     Map<String,Object> projectValues = (Map<String,Object>)projectObject;
 
-                    system.debug(opportunityMap.containsKey((String)projectValues.get('title')) + ' : ' + projectValues.get('title'));
+//                    system.debug(opportunityMap.containsKey((String)projectValues.get('title')) + ' : ' + projectValues.get('title'));
 
                     if (opportunityMap.containsKey((String)projectValues.get('title'))){
                         totalTrue += 1;
                     } else {
                         totalFalse += 1;
+                        system.debug((String)projectValues.get('title'));
                     }
 
-//                    for (String val : projectValues.keySet()){
-//                        system.debug(val + ' : ' + projectValues.get(val));
-//                    }
-
-//
-//
-//                    if (userValues.containsKey('email_address')){
-//                        String emailString  = (String)userValues.get('email_address');
-//                        emailString         = emailString.toUpperCase();
-//
-//                        system.debug('mavenlink email: ' + emailString);
-//
-//                        // if the Emlpoyee__c already exists, update the information
-//                        if (employeeMap.containsKey(emailString)){
-//                            employeeMap.get(emailString).MavenlinkId__c     = (String)userValues.get('id');
-//                            employeeMap.get(emailString).MavenlinkPhoto__c  = (String)userValues.get('photo_path');
-//                            employeeMap.get(emailString).MavenlinkActive__c = !(Boolean)userValues.get('disabled');
-//                        } else {
-//                            // if the Emlpoyee__c does not already exist, create a new one and add it to the map
-//                            String employeeName         = (String)userValues.get('full_name');
-//                            Employee__c employee        = new Employee__c(
-//                                    FirstName__c        = employeeName.split(' ')[0],
-//                                    LastName__c         = employeeName.split(' ')[1],
-//                                    MavenlinkId__c      = (String)userValues.get('id'),
-//                                    MavenlinkPhoto__c   = (String)userValues.get('photo_path'),
-//                                    MavenlinkActive__c  = !(Boolean)userValues.get('disabled'),
-//                                    Email__c            = (String)userValues.get('email_address')
-//                            );
-//
-//                            employeeMap.put(emailString,employee);
-//                        }
-//                    }
                 }
             }
 
-            system.debug('totalTrue ' + totalTrue);
-            system.debug('totalFalse ' + totalFalse);
+//            system.debug('totalTrue ' + totalTrue);
+//            system.debug('totalFalse ' + totalFalse);
         }
 
 

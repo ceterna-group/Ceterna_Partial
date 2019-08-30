@@ -213,6 +213,10 @@
                             <option name="selected" value="true" />
                           </MetadataEntry>
                           <MetadataEntry>
+                            <option name="name" value="PreSalesRequestTriggerHandler" />
+                            <option name="selected" value="true" />
+                          </MetadataEntry>
+                          <MetadataEntry>
                             <option name="name" value="RegressionHandler" />
                             <option name="selected" value="true" />
                           </MetadataEntry>
@@ -643,6 +647,10 @@
                           </MetadataEntry>
                           <MetadataEntry>
                             <option name="name" value="OpportunityTrigger" />
+                            <option name="selected" value="true" />
+                          </MetadataEntry>
+                          <MetadataEntry>
+                            <option name="name" value="PreSalesRequestTrigger" />
                             <option name="selected" value="true" />
                           </MetadataEntry>
                         </list>

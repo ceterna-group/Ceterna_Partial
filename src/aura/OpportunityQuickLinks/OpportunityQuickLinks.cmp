@@ -31,8 +31,10 @@
             <div class="container">
                 <div class="linkBlock">
                     <div class="vertical">
-                        <img src="{!$Resource.MavenlinkLogo}" width="100"
-                             class="{!or(not(v.opp.MavenlinkId__c),v.opp.MavenlinkId__c == 'RETRY') ? 'empty' : ''}"/>
+                        <a target="_blank" href="{!'https://ceterna.mavenlink.com/workspaces/' + v.opp.MavenlinkId__c}">
+                            <img src="{!$Resource.MavenlinkLogo}" width="100"
+                                 class="{!or(not(v.opp.MavenlinkId__c),v.opp.MavenlinkId__c == 'RETRY') ? 'empty' : ''}"/>
+                        </a>
                     </div>
                 </div>
                 <div class="linkBlock">
