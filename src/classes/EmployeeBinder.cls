@@ -19,8 +19,8 @@ public class EmployeeBinder {
         // iterate over Asana data
         employeeMap = bindAsanaData(employeeMap);
 
-        // todo: iterate over Freshdesk data
-
+        // iterate over Freshdesk data
+        employeeMap = bindFreshdeskData(employeeMap);
 
         // iterate over Salesforce User data
         employeeMap = bindUserData(employeeMap);
@@ -67,7 +67,7 @@ public class EmployeeBinder {
         HttpResponse mavenlinkResponse = mavenlinkCallout.send(responseBuilder(
                 'https://api.mavenlink.com/api/v1/users.json?per_page=200',
                 'GET',
-                '6830b41a8a0257513aaf4cd0dd99190812b72c4ee8078439f3309faa2868db05'
+                'Bearer 6830b41a8a0257513aaf4cd0dd99190812b72c4ee8078439f3309faa2868db05'
         ));
 
 
@@ -76,8 +76,6 @@ public class EmployeeBinder {
             // deserialise the response as a generic object. The structure of the JSON response is not usable
             // with any type of Json Parser apex class
             Map<String,Object> responseMap = (Map<String,Object>)JSON.deserializeUntyped(mavenlinkResponse.getBody());
-
-            system.debug('mav res map ' + responseMap);
 
             if (responseMap.containsKey('users')){
                 Map<String,Object> userObjects = (Map<String,Object>)responseMap.get('users');
@@ -89,8 +87,6 @@ public class EmployeeBinder {
                     if (userValues.containsKey('email_address')){
                         String emailString  = (String)userValues.get('email_address');
                         emailString         = emailString.toUpperCase();
-
-                        system.debug('mavenlink email: ' + emailString);
 
                         // if the Emlpoyee__c already exists, update the information
                         if (employeeMap.containsKey(emailString)){
@@ -126,7 +122,9 @@ public class EmployeeBinder {
         Map<String,String> nameEmailMap = new Map<String,String>();
 
         for (Employee__c employee : employeeMap.values()){
-            nameEmailMap.put(employee.FirstName__c.toUpperCase() + ' ' + employee.LastName__c.toUpperCase(),employee.Email__c.toUpperCase());
+            if (employee.FirstName__c != null && employee.LastName__c != null){
+                nameEmailMap.put(employee.FirstName__c.toUpperCase() + ' ' + employee.LastName__c.toUpperCase(),employee.Email__c.toUpperCase());
+            }
         }
 
         // call the Asana endpoint
@@ -134,7 +132,7 @@ public class EmployeeBinder {
         HttpResponse asanaResponse = asanaCallout.send(responseBuilder(
                 'https://app.asana.com/api/1.0/users?opt_fields=name,email',
                 'GET',
-                '0/8e1a1ec8f09bb7c93e80376c50f7bcaf'
+                'Bearer 0/8e1a1ec8f09bb7c93e80376c50f7bcaf'
         ));
 
         if (asanaResponse.getStatusCode() == 200){
@@ -157,6 +155,40 @@ public class EmployeeBinder {
                         } else if (nameEmailMap.containsKey(nameString)){
                             employeeMap.get(nameEmailMap.get(nameString)).AsanaId__c = (String)userValues.get('gid');
                         }
+                    }
+                }
+            }
+        }
+
+        return employeeMap;
+    }
+
+    @TestVisible
+    private static Map<String,Employee__c> bindFreshdeskData(Map<String,Employee__c> employeeMap){
+
+        // call the Freshdesk endpoint
+        Http freshdeskCallout = new Http();
+        HttpResponse freshdeskResponse = freshdeskCallout.send(responseBuilder(
+                'https://ceterna.freshdesk.com/api/v2/agents',
+                'GET',
+                'Basic Y2hhcmxpZUBjZXRlcm5hLmNvbTpDRVRFUk5BNC4x'
+        ));
+
+        if (freshdeskResponse.getStatusCode() == 200){
+
+            // deserialise the response as a generic object
+            List<Object> agentObjects = (List<Object>)JSON.deserializeUntyped(freshdeskResponse.getBody());
+
+            for (Object agentObject : agentObjects){
+
+                Map<String,Object> valueMap = (Map<String,Object>)agentObject;
+                String fershdeskId = valueMap.containsKey('id') ? String.valueOf((Long)valueMap.get('id')) : null;
+
+                if (fershdeskId != null && valueMap.containsKey('contact')){
+                    Map<String,Object> contactMap = (Map<String,Object>)valueMap.get('contact');
+                    String email = (String)contactMap.get('email');
+                    if (employeeMap.containsKey(email.toUpperCase())){
+                        employeeMap.get(email.toUpperCase()).FreshdeskId__c = fershdeskId;
                     }
                 }
             }
@@ -193,7 +225,7 @@ public class EmployeeBinder {
             HttpResponse cezanneResponse = cezanneCallout.send(responseBuilder(
                     'https://w3.cezanneondemand.com/cezanneondemand/v4/dataservice.svc/People?$filter=ActiveEmployee%20eq%201',
                     'GET',
-                    accessToken
+                    'Bearer ' + accessToken
             ));
 
             if (cezanneResponse.getStatusCode() == 200) {
@@ -202,7 +234,9 @@ public class EmployeeBinder {
                 Map<String,String> nameEmailMap = new Map<String,String>();
 
                 for (Employee__c employee : employeeMap.values()){
-                    nameEmailMap.put(employee.FirstName__c.toUpperCase() + ' ' + employee.LastName__c.toUpperCase(),employee.Email__c.toUpperCase());
+                    if (employee.FirstName__c != null && employee.LastName__c != null){
+                        nameEmailMap.put(employee.FirstName__c.toUpperCase() + ' ' + employee.LastName__c.toUpperCase(),employee.Email__c.toUpperCase());
+                    }
                 }
 
                 Map<String, Object> responseMap = (Map<String, Object>) JSON.deserializeUntyped(cezanneResponse.getBody());
@@ -241,20 +275,22 @@ public class EmployeeBinder {
 
             String userEmail    = user.Email.replaceAll('.invalid','').replaceAll('.partial','').toUpperCase();
 
-            if (employeeMap.containsKey(userEmail)){
-                if (employeeMap.get(userEmail).User__c != user.Id){
-                    employeeMap.get(userEmail).User__c = user.Id;
-                    employeeMap.get(userEmail).Position__c = user.Title;
-                }
-            } else {
-                Employee__c employee        = new Employee__c(
-                        FirstName__c        = user.FirstName,
-                        LastName__c         = user.LastName,
-                        Position__c         = user.Title,
-                        Email__c            = user.Email.replaceAll('.invalid','').replaceAll('.partial','')
-                );
+            if(Pattern.matches('[a-zA-Z0-9._-]+@[a-zA-Z]+.[a-zA-Z]{2,4}[.]{0,1}[a-zA-Z]{0,2}', userEmail)){
+                if (employeeMap.containsKey(userEmail)){
+                    if (employeeMap.get(userEmail).User__c != user.Id){
+                        employeeMap.get(userEmail).User__c = user.Id;
+                        employeeMap.get(userEmail).Position__c = user.Title;
+                    }
+                } else {
+                    Employee__c employee        = new Employee__c(
+                            FirstName__c        = user.FirstName,
+                            LastName__c         = user.LastName,
+                            Position__c         = user.Title,
+                            Email__c            = user.Email.replaceAll('.invalid','').replaceAll('.partial','')
+                    );
 
-                employeeMap.put(userEmail,employee);
+                    employeeMap.put(userEmail,employee);
+                }
             }
         }
 
@@ -269,7 +305,7 @@ public class EmployeeBinder {
         request.setEndpoint(endpoint);
         request.setMethod(method.toUpperCase());
         request.setHeader('Accept', 'application/json');
-        request.setHeader('Authorization', 'Bearer ' + bearer);
+        request.setHeader('Authorization', bearer);
 
         return request;
     }
