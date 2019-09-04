@@ -7,72 +7,74 @@
 
 
     <aura:attribute name="opp" type="Opportunity" />
+    <aura:attribute name="state" type="String"/>
+    <aura:attribute name="pendingAll" type="Boolean" default="false"/>
 
     <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
 
     <force:recordData aura:id="recordLoader"
                       recordId="{!v.recordId}"
-                      fields="AsanaId__c,MavenlinkId__c,FreshdeskId__c,XeroId__c"
-                      targetFields="{!v.opp}"/>
+                      fields="AsanaId__c,MavenlinkId__c,FreshdeskId__c,XeroId__c,StageName"
+                      targetFields="{!v.opp}"
+                      recordUpdated="{!c.recordUpdated}"/>
 
-<!--    <lightning:card >-->
+        AsanaId__c: {!v.opp.AsanaId__c}
+        MavenlinkId__c: {!v.opp.MavenlinkId__c}
+        FreshdeskId__c: {!v.opp.FreshdeskId__c}
+        XeroId__c: {!v.opp.XeroId__c}
 
-        AsanaId__c: {!v.opportunity.AsanaId__c}
-        MavenlinkId__c: {!v.opportunity.MavenlinkId__c}
-        FreshdeskId__c: {!v.opportunity.FreshdeskId__c}
-        XeroId__c: {!v.opportunity.XeroId__c}
-
-<!--        <lightning:layout>-->
-<!--            <div>QUICK LINKS</div>-->
-
-<!--            https://go.xero.com/Contacts/View/8839e7b5-3036-4ddb-8a66-b0789f59fb86-->
 
     <div class="slds-card">
-            <div class="container">
-                <div class="linkBlock">
-                    <div class="vertical">
-                        <a target="_blank" href="{!'https://ceterna.mavenlink.com/workspaces/' + v.opp.MavenlinkId__c}">
-                            <img src="{!$Resource.MavenlinkLogo}" width="100"
-                                 class="{!or(not(v.opp.MavenlinkId__c),v.opp.MavenlinkId__c == 'RETRY') ? 'empty' : ''}"/>
-                        </a>
-                    </div>
-                </div>
-                <div class="linkBlock">
-                    <div class="vertical">
-                        <img src="{!$Resource.AsanaLogo}" width="75"/>
-                    </div>
-                </div>
+        <div class="container">
+            <div class="linkBlock">
+                <div class="vertical">
+                    <img src="{!$Resource.MavenlinkLogo}" width="100" onclick="{!c.handleMavenlink}"
+                         class="{!or(not(v.opp.MavenlinkId__c),v.opp.MavenlinkId__c == 'RETRY') ? 'empty' : ''}"/>
+                    <aura:if isTrue="{!not(v.opp.MavenlinkId__c)}">
 
-                <div class="linkBlock">
-                    <div class="vertical">
-                        <img src="{!$Resource.XeroLogo}" width="50"/>
-                    </div>
-                </div>
-
-                <div class="linkBlock">
-                    <div class="vertical">
-                        <img src="{!$Resource.FreshdeskLogo}" width="100"/>
-                    </div>
-                </div>
-
-            </div>
-
-<!--        </lightning:layout>-->
-<!--        <lightning:layout>-->
-            <div class="container">
-                <div class="linkBlock">
-                    <div class="vertical">
-                        <img src="{!$Resource.SlackLogo}" width="100"/>
-                    </div>
+                        <div class="plus">
+<!--                            <lightning:icon iconName="action:new" variant="inverse"/>-->
+                        </div>
+                    </aura:if>
+                    <aura:if isTrue="{!v.pendingAll}">
+                        <lightning:spinner />
+                    </aura:if>
                 </div>
             </div>
+            <div class="linkBlock">
+                <div class="vertical">
+                    <img src="{!$Resource.AsanaLogo}" width="75" onclick="{!c.handleAsana}"
+                         class="{!or(not(v.opp.AsanaId__c),v.opp.AsanaId__c == 'RETRY') ? 'empty' : ''}"/>
+                </div>
+            </div>
+
+            <div class="linkBlock">
+                <div class="vertical">
+                    <img src="{!$Resource.XeroLogo}" width="50" onclick="{!c.handleXero}"
+                         class="{!or(not(v.opp.XeroId__c),v.opp.XeroId__c == 'RETRY') ? 'empty' : ''}"/>
+                </div>
+            </div>
+
+            <aura:if isTrue="{!v.opp.FreshdeskId__c}">
+                <div class="linkBlock">
+                    <div class="vertical">
+                        <img src="{!$Resource.FreshdeskLogo}" width="100" onclick="{!c.handleFreshdesk}"
+                             class="{!or(not(v.opp.FreshdeskId__c),v.opp.FreshdeskId__c == 'RETRY') ? 'empty' : ''}"/>
+                    </div>
+                </div>
+            </aura:if>
+
+        </div>
+
+        <div class="container">
+            <div class="linkBlock">
+                <div class="vertical">
+                    <img src="{!$Resource.SlackLogo}" width="100"/>
+                </div>
+            </div>
+        </div>
     </div>
 
-<!--        </lightning:layout>-->
-
-
-
-<!--    </lightning:card>-->
 
 
 
