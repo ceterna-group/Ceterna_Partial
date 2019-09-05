@@ -64,7 +64,9 @@ public class EmployeeBinder {
 
         // call the mavenlink endpoint
         Http mavenlinkCallout = new Http();
-        HttpResponse mavenlinkResponse = mavenlinkCallout.send(responseBuilder(
+        HttpResponse mavenlinkResponse = Test.isRunningTest() ?
+                MockHandler.mavenklinkUserMock() :
+                mavenlinkCallout.send(responseBuilder(
                 'https://api.mavenlink.com/api/v1/users.json?per_page=200',
                 'GET',
                 'Bearer 6830b41a8a0257513aaf4cd0dd99190812b72c4ee8078439f3309faa2868db05'
@@ -129,13 +131,17 @@ public class EmployeeBinder {
 
         // call the Asana endpoint
         Http asanaCallout = new Http();
-        HttpResponse asanaResponse = asanaCallout.send(responseBuilder(
+        HttpResponse asanaResponse = Test.isRunningTest() ?
+                MockHandler.asanaUserMock() :
+                asanaCallout.send(responseBuilder(
                 'https://app.asana.com/api/1.0/users?opt_fields=name,email',
                 'GET',
                 'Bearer 0/8e1a1ec8f09bb7c93e80376c50f7bcaf'
         ));
 
         if (asanaResponse.getStatusCode() == 200){
+
+            system.debug(asanaResponse.getBody());
 
             // deserialise the response as a generic object
             Map<String,Object> responseMap = (Map<String,Object>)JSON.deserializeUntyped(asanaResponse.getBody());
@@ -168,13 +174,18 @@ public class EmployeeBinder {
 
         // call the Freshdesk endpoint
         Http freshdeskCallout = new Http();
-        HttpResponse freshdeskResponse = freshdeskCallout.send(responseBuilder(
+        HttpResponse freshdeskResponse = Test.isRunningTest() ?
+                MockHandler.freshdeskUserMock() :
+                freshdeskCallout.send(responseBuilder(
                 'https://ceterna.freshdesk.com/api/v2/agents',
                 'GET',
                 'Basic Y2hhcmxpZUBjZXRlcm5hLmNvbTpDRVRFUk5BNC4x'
         ));
 
         if (freshdeskResponse.getStatusCode() == 200){
+
+            system.debug(freshdeskResponse.getBody());
+
 
             // deserialise the response as a generic object
             List<Object> agentObjects = (List<Object>)JSON.deserializeUntyped(freshdeskResponse.getBody());
