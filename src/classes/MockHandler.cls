@@ -18,6 +18,7 @@ public class MockHandler {
             '       "photo_path":"testpath",' +
             '       "email_address":"testuser@ceterna.com",' +
             '       "disabled":false' +
+            '       }' +
             '   }' +
             '}');
         return mockResponse;
@@ -47,6 +48,27 @@ public class MockHandler {
             '       "email":"testuser@ceterna.com"' +
             '   }' +
             '}]');
+        return mockResponse;
+    }
+
+    public static HttpResponse cezanneUserTokenMock(){
+
+        HttpResponse mockResponse = new HttpResponse();
+        mockResponse.setStatusCode(200);
+        mockResponse.setBody('{"access_token":"gAAAADnHSu0agCaMf9fajnTQtPeY"}');
+        return mockResponse;
+    }
+
+    public static HttpResponse cezanneUserMock(){
+
+        HttpResponse mockResponse = new HttpResponse();
+        mockResponse.setStatusCode(200);
+        mockResponse.setBody('{' +
+                '   "odata.metadata":"https://w3.cezanneondemand.com/cezanneondemand/v4/DataService.svc/$metadata#People",' +
+                '   "value":[' +
+                '       {"PersonGUID":"2bf7f3b1-3780-47f8-9087-1cacc823beac",' +
+                '       "FullName":"Test Employee"}]' +
+                '}');
         return mockResponse;
     }
 

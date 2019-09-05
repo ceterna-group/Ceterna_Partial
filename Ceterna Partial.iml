@@ -157,6 +157,10 @@
                             <option name="selected" value="true" />
                           </MetadataEntry>
                           <MetadataEntry>
+                            <option name="name" value="EmployeeBinderTest" />
+                            <option name="selected" value="true" />
+                          </MetadataEntry>
+                          <MetadataEntry>
                             <option name="name" value="ForgotPasswordController" />
                             <option name="selected" value="true" />
                           </MetadataEntry>

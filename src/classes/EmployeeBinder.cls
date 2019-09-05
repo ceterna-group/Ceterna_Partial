@@ -5,6 +5,10 @@
 public class EmployeeBinder {
 
 
+    /*
+     *  @method - bind()
+     *  @desc - Used to bind Employee__c record ids across external systems and with Salesforce User records
+     */
     public static void bind(){
 
         // retrieve map of all employees by email
@@ -59,8 +63,7 @@ public class EmployeeBinder {
      *  @param {Map<String,Employee__c>} employeeMap - a map of all Employee__c records with Email__c as the key
      *  @return {Map<String,Employee__c>} - returns a map of all Employee__c records the Email__c as the key
      */
-    @TestVisible
-    private static Map<String,Employee__c> bindMavenlinkData(Map<String,Employee__c> employeeMap){
+    public static Map<String,Employee__c> bindMavenlinkData(Map<String,Employee__c> employeeMap){
 
         // call the mavenlink endpoint
         Http mavenlinkCallout = new Http();
@@ -102,7 +105,7 @@ public class EmployeeBinder {
                                     FirstName__c        = employeeName.split(' ')[0],
                                     LastName__c         = employeeName.split(' ')[1],
                                     MavenlinkId__c      = (String)userValues.get('id'),
-                                    MavenlinkPhoto__c   = (String)userValues.get('photo_path'),
+                                    MavenlinkPhoto__c   = userValues.containsKey('photo_path') ? (String)userValues.get('photo_path') : '',
                                     MavenlinkActive__c  = !(Boolean)userValues.get('disabled'),
                                     Email__c            = (String)userValues.get('email_address')
                             );
@@ -117,8 +120,13 @@ public class EmployeeBinder {
         return employeeMap;
     }
 
-    @TestVisible
-    private static Map<String,Employee__c> bindAsanaData(Map<String,Employee__c> employeeMap){
+    /*
+     *  @method - bindAsanaData()
+     *  @desc - Used to update Employee__c records with the latest Asana User information
+     *  @param {Map<String,Employee__c>} employeeMap - a map of all Employee__c records with Email__c as the key
+     *  @return {Map<String,Employee__c>} - returns a map of all Employee__c records the Email__c as the key
+     */
+    public static Map<String,Employee__c> bindAsanaData(Map<String,Employee__c> employeeMap){
 
         // because asana does not provide the employee email, create a map of name to email
         Map<String,String> nameEmailMap = new Map<String,String>();
@@ -140,8 +148,6 @@ public class EmployeeBinder {
         ));
 
         if (asanaResponse.getStatusCode() == 200){
-
-            system.debug(asanaResponse.getBody());
 
             // deserialise the response as a generic object
             Map<String,Object> responseMap = (Map<String,Object>)JSON.deserializeUntyped(asanaResponse.getBody());
@@ -169,8 +175,13 @@ public class EmployeeBinder {
         return employeeMap;
     }
 
-    @TestVisible
-    private static Map<String,Employee__c> bindFreshdeskData(Map<String,Employee__c> employeeMap){
+    /*
+     *  @method - bindFreshdeskData()
+     *  @desc - Used to update Employee__c records with the latest Freshdesk User information
+     *  @param {Map<String,Employee__c>} employeeMap - a map of all Employee__c records with Email__c as the key
+     *  @return {Map<String,Employee__c>} - returns a map of all Employee__c records the Email__c as the key
+     */
+    public static Map<String,Employee__c> bindFreshdeskData(Map<String,Employee__c> employeeMap){
 
         // call the Freshdesk endpoint
         Http freshdeskCallout = new Http();
@@ -183,9 +194,6 @@ public class EmployeeBinder {
         ));
 
         if (freshdeskResponse.getStatusCode() == 200){
-
-            system.debug(freshdeskResponse.getBody());
-
 
             // deserialise the response as a generic object
             List<Object> agentObjects = (List<Object>)JSON.deserializeUntyped(freshdeskResponse.getBody());
@@ -208,8 +216,13 @@ public class EmployeeBinder {
         return employeeMap;
     }
 
-    @TestVisible
-    private static Map<String,Employee__c> bindCezanneData(Map<String,Employee__c> employeeMap){
+    /*
+    *  @method - bindCezanneData()
+    *  @desc - Used to update Employee__c records with the latest Cezanne User information
+    *  @param {Map<String,Employee__c>} employeeMap - a map of all Employee__c records with Email__c as the key
+    *  @return {Map<String,Employee__c>} - returns a map of all Employee__c records the Email__c as the key
+    */
+    public static Map<String,Employee__c> bindCezanneData(Map<String,Employee__c> employeeMap){
 
         Http http = new Http();
         HttpRequest authRequest    = new HttpRequest();
@@ -222,18 +235,21 @@ public class EmployeeBinder {
         authRequest.setHeader('Host', 'w3.cezanneondemand.com');
         authRequest.setBody('grant_type=client_credentials&scope=http://www.cezannehr.com/auth-scope/APIRead');
 
-        HttpResponse response = http.send(authRequest);
+        HttpResponse response = Test.isRunningTest() ? MockHandler.cezanneUserTokenMock() : http.send(authRequest);
 
         Map<String,Object> tokenMap = (Map<String,Object>)JSON.deserializeUntyped(response.getBody());
 
         String accessToken = '';
 
         if (response.getStatusCode() == 200 && tokenMap.containsKey('access_token')){
+
             accessToken = (String)tokenMap.get('access_token');
 
             // call the Cezanne endpoint
             Http cezanneCallout = new Http();
-            HttpResponse cezanneResponse = cezanneCallout.send(responseBuilder(
+            HttpResponse cezanneResponse = Test.isRunningTest() ?
+                    MockHandler.cezanneUserMock() :
+                    cezanneCallout.send(responseBuilder(
                     'https://w3.cezanneondemand.com/cezanneondemand/v4/dataservice.svc/People?$filter=ActiveEmployee%20eq%201',
                     'GET',
                     'Bearer ' + accessToken
@@ -279,8 +295,13 @@ public class EmployeeBinder {
         return employeeMap;
     }
 
-    @TestVisible
-    private static Map<String,Employee__c> bindUserData(Map<String,Employee__c> employeeMap){
+    /*
+    *  @method - bindUserData()
+    *  @desc - Used to update Employee__c records with the latest Salesforce User record information
+    *  @param {Map<String,Employee__c>} employeeMap - a map of all Employee__c records with Email__c as the key
+    *  @return {Map<String,Employee__c>} - returns a map of all Employee__c records the Email__c as the key
+    */
+    public static Map<String,Employee__c> bindUserData(Map<String,Employee__c> employeeMap){
 
         for (User user : [SELECT Id, Email, FirstName, LastName, Title FROM User]){
 
@@ -308,8 +329,14 @@ public class EmployeeBinder {
         return employeeMap;
     }
 
-
-    @TestVisible
+    /*
+    *  @method - responseBuilder()
+    *  @desc - Used to update Employee__c records with the latest Salesforce User record information
+    *  @param String endpoint - endpoint for the callout
+    *  @param String method - Http verb for the callout
+    *  @param String bearer - authentication string (Basic or Bearer)
+    *  @return HttpRequest - returns a configured http request
+    */
     public static HttpRequest responseBuilder(String endpoint, String method, String bearer){
 
         HttpRequest request    = new HttpRequest();
