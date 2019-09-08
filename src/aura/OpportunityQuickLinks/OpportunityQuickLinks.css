@@ -3,7 +3,8 @@
  */
 
 .THIS .linkBlock {
-    width: 120px;
+    /*width: 120px;*/
+    width: 95%;
     height: 70px;
     border: 0.5px solid lightgrey;
     border-radius: 4px;
@@ -11,6 +12,7 @@
     cursor: pointer;
     margin: 5px;
     display: flex;
+
     justify-content: center;
 }
 
@@ -21,16 +23,18 @@
 .THIS .container {
     width: 100%;
     padding: 5px;
-    display: flex;
+    /*display: flex;*/
+    display: grid;
+    grid-template-columns: 25% 25% 25% 25%;
     position: relative;
 }
 
 .THIS .vertical {
-    margin: 0;
-    position: absolute;
-    top: 55%;
-    -ms-transform: translateY(-50%);
-    transform: translateY(-50%);
+    /*margin: 0;*/
+    /*position: absolute;*/
+    /*top: 55%;*/
+    /*-ms-transform: translateY(-50%);*/
+    /*transform: translateY(-50%);*/
 }
 
 .THIS .empty {

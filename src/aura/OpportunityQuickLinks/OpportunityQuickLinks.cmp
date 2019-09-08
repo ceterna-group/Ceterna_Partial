@@ -65,9 +65,9 @@
                 </div>
             </aura:if>
 
-        </div>
+<!--        </div>-->
 
-        <div class="container">
+<!--        <div class="container">-->
             <div class="linkBlock">
                 <div class="vertical">
                     <img src="{!$Resource.SlackLogo}" width="100"/>
