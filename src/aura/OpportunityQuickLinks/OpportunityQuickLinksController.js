@@ -20,6 +20,9 @@
 
         if (mavenlinkId){
             $H.navigateToURL('https://ceterna.mavenlink.com/workspaces/' + mavenlinkId);
+        } else {
+            $C.set('v.pendingMavenklink', true);
+
         }
     },
     handleAsana : function($C,$E,$H){

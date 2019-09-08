@@ -13,15 +13,52 @@ public with sharing class OpportunityBinder {
         bindMavenlinkData(opportunityMap);
 
 
+        // todo: report mavenlink names
+
+
+
+        // ----- BINDINGS --------
+
+        // ACCOUNTS
+        // todo: bind freshdesk data to Accounts by name
+        // todo: bind xero company names to Account by name
+
+
+
+        // ----- DATA POSTING -------
+
+        // Fresdesk
+        // todo: post any accounts flagged as support client which do not have an id
+
+        // xero - account
+        // todo:  - for the parent
+        //  of any job from start of 2019 onwards, if it is not in xero then post
+
+        // xero - opportunity
+        // todo: post any won opps from 2019 to xero as projects
+
+        // adana - opportunity
+        // todo: post any won opps from 2019 to asana as projects
+
+
+        // ---- FRESHDESK BINDINGS ------
+        // todo: update existing freshdesk tickets with their company id
+        // todo: pair the tickets with their account if not already parented using the lookup
+
+        // todo: post any tickets to asana if assigned to employee__c with asana id
+
+        // HOW TO PAIR TICKET WITH PROJECT?
+
+
+
 
 
 
     }
 
 
-    @TestVisible
 //    private static Map<String,Employee__c> bindMavenlinkData(Map<String,Employee__c> employeeMap){
-    private static void bindMavenlinkData(Map<String,Opportunity> opportunityMap){
+    public static void bindMavenlinkData(Map<String,Opportunity> opportunityMap){
 
 
         // call the mavenlink endpoint
@@ -81,13 +118,58 @@ public with sharing class OpportunityBinder {
 
     }
 
+    public static void bindFreshdeskCompaniesToAccounts(){
+
+
+        Map<String,Account> accountMap = new Map<String,Account>();
+
+        for (Account acc : [SELECT Name, Support_Name__c FROM Account
+                            WHERE Support_Name__c = NULL]){
+            accountMap.put(acc.Name.toUpperCase(), acc);
+        }
+
+        // call the mavenlink endpoint
+        Http freshdeskCallout = new Http();
+        HttpResponse freshdeskResponse = freshdeskCallout.send(responseBuilder(
+                'https://ceterna.freshdesk.com/api/v2/companies',
+                'GET',
+                'Basic Y2hhcmxpZUBjZXRlcm5hLmNvbTpDRVRFUk5BNC4x'
+        ));
+
+        system.debug(freshdeskResponse.getStatusCode());
+        system.debug(freshdeskResponse.getBody());
+
+
+        if (freshdeskResponse.getStatusCode() == 200) {
+
+            // bind ids to names
+            List<Object> companyObjects = (List<Object>)JSON.deserializeUntyped(freshdeskResponse.getBody());
+
+            for (Object companyObject : companyObjects){
+
+                system.debug('obj : ' + companyObject);
+
+                Map<String,Object> objValues = (Map<String,Object>)companyObject;
+                String name = (String)objValues.get('name');
+                if (accountMap.containsKey(name.toUpperCase())){
+                    accountMap.get(name.toUpperCase()).Support_Name__c = (String)objValues.get('id');
+                }
+            }
+
+        }
+
+        update accountMap.values();
+
+    }
+
+
+
     /*
      *  @method - getAllOpportunities()
      *  @desc - Used to generate an email to employee map which external integrations can reference
      *  @return {Map<String,Employee__c>} - returns a map of all Employee__c records the Email__c as the key
      */
-    @TestVisible
-    private static Map<String,Opportunity> getAllOpportunities(){
+    public static Map<String,Opportunity> getAllOpportunities(){
 
         // declare a map of all employees
         Map<String,Opportunity> opportunityMap = new Map<String,Opportunity>();
@@ -103,7 +185,6 @@ public with sharing class OpportunityBinder {
     }
 
 
-    @TestVisible
     public static HttpRequest responseBuilder(String endpoint, String method, String bearer){
 
         HttpRequest request    = new HttpRequest();

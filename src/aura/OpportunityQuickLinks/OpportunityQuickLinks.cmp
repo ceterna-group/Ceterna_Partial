@@ -8,6 +8,9 @@
 
     <aura:attribute name="opp" type="Opportunity" />
     <aura:attribute name="state" type="String"/>
+    <aura:attribute name="pendingMavenlink" type="Boolean" default="false"/>
+    <aura:attribute name="pendingAsana" type="Boolean" default="false"/>
+    <aura:attribute name="pendingXero" type="Boolean" default="false"/>
     <aura:attribute name="pendingAll" type="Boolean" default="false"/>
 
     <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
@@ -36,9 +39,7 @@
 <!--                            <lightning:icon iconName="action:new" variant="inverse"/>-->
                         </div>
                     </aura:if>
-                    <aura:if isTrue="{!v.pendingAll}">
-                        <lightning:spinner />
-                    </aura:if>
+                    <aura:if isTrue="{!or(v.pendingAll,v.pendingMavenlink)}"><lightning:spinner/></aura:if>
                 </div>
             </div>
             <div class="linkBlock">
