@@ -4,8 +4,8 @@
 
 public class OpportunityTriggerHandler {
 
-
-    private string apiErrors;
+    public static Integer errorCount;
+    public static String errors;
 
     public static void beforeInsert(List<Opportunity> newRecords) {
 
@@ -54,6 +54,10 @@ public class OpportunityTriggerHandler {
     @Future(Callout=true)
     public static void postOpportunities(Set<Id> opportunityIds){
 
+        // delcare error handling variables
+        errorCount  = 0;
+        errors      = '';
+
         // declare map of all opportunities in trigger
         Map<String,Opportunity> opportunityMap = new Map<String,Opportunity>();
 
@@ -73,7 +77,10 @@ public class OpportunityTriggerHandler {
 
         if (mavenlinkRequest != null){
             Http mavenlinkCallout           = new Http();
-            HttpResponse mavenlinkResponse  = mavenlinkCallout.send(mavenlinkRequest);
+            HttpResponse mavenlinkResponse  = Test.isRunningTest() ? MockHandler.mavenklinkUserMock() : mavenlinkCallout.send(mavenlinkRequest);
+
+            System.debug('mavelink response: ');
+            system.debug(mavenlinkResponse.getBody());
 
             // now process the body and update the map values
             if (mavenlinkResponse.getStatusCode() == 200) {
@@ -87,6 +94,9 @@ public class OpportunityTriggerHandler {
                         opportunityMap.get((String)recordDetails.get('title')).MavenlinkId__c = (String)recordDetails.get('id');
                     }
                 }
+            } else {
+                errorCount  += 1;
+                errors      += 'Did not get 200 response for Mavenlink, received ' + mavenlinkResponse.getStatusCode() + '.\n';
             }
         }
 
@@ -95,7 +105,10 @@ public class OpportunityTriggerHandler {
 
         if (asanaRequest != null){
             Http asanaCallout           = new Http();
-            HttpResponse asanaResponse  = asanaCallout.send(asanaRequest);
+            HttpResponse asanaResponse  = Test.isRunningTest() ? MockHandler.mavenklinkUserMock() : asanaCallout.send(asanaRequest);
+
+            System.debug('asana response: ');
+            system.debug(asanaResponse.getBody());
 
             // now process the body and update the map values
             if (asanaResponse.getStatusCode() == 200) {
@@ -112,6 +125,9 @@ public class OpportunityTriggerHandler {
                         opportunityMap.get((String)recordDetails.get('name')).AsanaId__c = (String)recordDetails.get('gid');
                     }
                 }
+            } else {
+                errorCount  += 1;
+                errors      += 'Did not get 200 response for Asana, received ' + asanaResponse.getStatusCode() + '.\n';
             }
         }
 
@@ -139,15 +155,19 @@ public class OpportunityTriggerHandler {
                         '       "PostalCode" : "' + (opp.Account.BillingPostalCode == null ? '' : opp.Account.BillingPostalCode) + '"' +
                         '   }]' +
                         '}';
-                HttpResponse xeroContactResponse = XeroCalloutUtility.executeCallout('POST', 'api','Contacts', accountJson);
+                HttpResponse xeroContactResponse = Test.isRunningTest() ? MockHandler.mavenklinkUserMock() :
+                        XeroCalloutUtility.executeCallout('POST', 'api','Contacts', accountJson);
 
-                System.debug('contact code' + xeroContactResponse.getStatusCode());
-                System.debug('contact body' + xeroContactResponse.getBody());
+                System.debug('xero contatct response: ');
+                system.debug(xeroContactResponse.getBody());
 
                 if (xeroContactResponse != null && xeroContactResponse.getStatusCode() == 200){
                     Map<String,Object> valueMap = (Map<String,Object>) JSON.deserializeUntyped(xeroContactResponse.getBody());
                     opp.Account.XeroContactId__c = valueMap.containsKey('Id') ? (String)valueMap.get('Id') : 'RETRY';
                     newCustomers.put(opp.AccountId, new Account(Id = opp.AccountId, XeroContactId__c = opp.Account.XeroContactId__c));
+                } else {
+                    errorCount  += 1;
+                    errors      += 'Did not get 200 response for Xero contact callout, received ' + xeroContactResponse.getStatusCode() + '.\n';
                 }
             }
 
@@ -156,18 +176,19 @@ public class OpportunityTriggerHandler {
 
                 String projectJson = '  { "contactId" : "' + opp.Account.XeroContactId__c + '",' +
                                      '    "name" : "' + opp.Job_Number__c + ' - ' + opp.Name + '"}';
-                HttpResponse xeroProjectResponse = XeroCalloutUtility.executeCallout('POST', 'projects','Projects', projectJson);
+                HttpResponse xeroProjectResponse = Test.isRunningTest() ? MockHandler.mavenklinkUserMock() :
+                        XeroCalloutUtility.executeCallout('POST', 'projects','Projects', projectJson);
 
-
-                system.debug('opp acc id is ' + opp.Account.XeroContactId__c);
-                System.debug('proj code' + xeroProjectResponse.getStatusCode());
-                System.debug('proj body' + xeroProjectResponse.getBody());
-
+                System.debug('xero project response: ');
+                system.debug(xeroProjectResponse.getBody());
 
                 if (xeroProjectResponse != null && xeroProjectResponse.getStatusCode() == 201){
                     Map<String,Object> valueMap = (Map<String,Object>) JSON.deserializeUntyped(xeroProjectResponse.getBody());
                     opp.XeroId__c = valueMap.containsKey('projectId') ? (String)valueMap.get('projectId') : 'RETRY';
 
+                } else {
+                    errorCount  += 1;
+                    errors      += 'Did not get 201 response for Xero project callout, received ' + xeroProjectResponse.getStatusCode() + '.\n';
                 }
             }
         }
@@ -176,6 +197,9 @@ public class OpportunityTriggerHandler {
 
         // UPDATE THE OPP VALUES
         update opportunityMap.values();
+
+        //if (errorCount > 0)
+            IntegrationErrorHandler.sendErrorEmail('OpportunityTriggerHandler', errors, errorCount);
 
     }
 
@@ -186,14 +210,14 @@ public class OpportunityTriggerHandler {
         for (Opportunity opp : opportunityMap.values()){
             if (opp.MavenlinkId__c == null){
                 oppJsonStrings.add(
-                        '  {'+
-                        '       "title" : "' + opp.Job_Number__c + ' - ' + opp.Name + '",' +
-                        '       "creator_role" : "maven", ' +
-                        '       "budgeted" : true, ' +
-                        '       "price" : ' + opp.Amount + ','+
-                        '       "start_date" : "' + String.valueOf(Date.today()) + '",'+
-                        '       "description" : "' + opp.Description + '"'+
-                        '  }');
+                    '  {'+
+                    '       "title" : "' + opp.Job_Number__c + ' - ' + opp.Name + '",' +
+                    '       "creator_role" : "maven", ' +
+                    '       "budgeted" : true, ' +
+                    '       "price" : ' + opp.Amount + ','+
+                    '       "start_date" : "' + String.valueOf(Date.today()) + '",'+
+                    '       "description" : "' + opp.Description + '"'+
+                    '  }');
             }
         }
 

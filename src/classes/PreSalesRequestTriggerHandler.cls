@@ -27,9 +27,8 @@ public class PreSalesRequestTriggerHandler {
     public static void handlePost(Set<Id> recordIds){
 
         // delcare error handling variables
-        PreSalesRequestTriggerHandler.errorCount  = 0;
-        PreSalesRequestTriggerHandler.errors      = '';
-
+        errorCount  = 0;
+        errors      = '';
 
         // declare map of all opportunities in trigger
         Map<String,Pre_Sales_Request__c> preSalesRequestMap = new Map<String,Pre_Sales_Request__c>();
@@ -58,8 +57,14 @@ public class PreSalesRequestTriggerHandler {
                     Map<String, Object> recordDetails = (Map<String, Object>) mavelinkProject;
                     if (preSalesRequestMap.containsKey((String)recordDetails.get('title'))) {
                         preSalesRequestMap.get((String)recordDetails.get('title')).MavenlinkId__c = (String)recordDetails.get('id');
+                    }  else {
+                        errorCount += 1;
+                        errors += 'Mavenlink response could not locate ' + (String)recordDetails.get('name') + ' in record map.\n';
                     }
                 }
+            } else {
+                errorCount  += 1;
+                errors      += 'PreSalesRequestTriggerHandler: Did not get 200 response for Mavenlink, received ' + mavenlinkResponse.getStatusCode() + '\n';
             }
         }
 
@@ -83,10 +88,19 @@ public class PreSalesRequestTriggerHandler {
 
                     if (recordDetails != null && recordDetails.containsKey('name') && preSalesRequestMap.containsKey((String)recordDetails.get('name'))) {
                         preSalesRequestMap.get((String)recordDetails.get('name')).AsanaId__c = (String)recordDetails.get('gid');
+                    } else {
+                        errorCount += 1;
+                        errors += 'Asana response could not locate ' + (String)recordDetails.get('name') + ' in record map.\n';
                     }
                 }
+            } else {
+                errorCount  += 1;
+                errors      += 'PreSalesRequestTriggerHandler: Did not get 200 response for Asana, ' +
+                               'received ' + asanaResponse.getStatusCode() + '.\n';
             }
         }
+
+        if (errorCount > 0) IntegrationErrorHandler.sendErrorEmail('PreSalesRequestTriggerHandler', errors, errorCount);
 
     }
 
@@ -190,5 +204,4 @@ public class PreSalesRequestTriggerHandler {
             return null;
         }
     }
-
 }

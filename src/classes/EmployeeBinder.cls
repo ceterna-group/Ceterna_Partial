@@ -4,12 +4,18 @@
 
 public class EmployeeBinder {
 
+    public static Integer errorCount;
+    public static String errors;
 
     /*
      *  @method - bind()
      *  @desc - Used to bind Employee__c record ids across external systems and with Salesforce User records
      */
     public static void bind(){
+
+        // delcare error handling variables
+        errorCount  = 0;
+        errors      = '';
 
         // retrieve map of all employees by email
         Map<String,Employee__c> employeeMap = getAllEmployees();
@@ -32,6 +38,8 @@ public class EmployeeBinder {
         // upsert Employee__c data
         upsert employeeMap.values();
 
+        //if (errorCount > 0)
+            IntegrationErrorHandler.sendErrorEmail('EmployeeBinder',errors, errorCount);
     }
 
     /*

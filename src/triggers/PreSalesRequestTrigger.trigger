@@ -14,10 +14,9 @@ trigger PreSalesRequestTrigger on Pre_Sales_Request__c (before insert, before up
 
     if (Trigger.isAfter && !System.isFuture()) {
         if (Trigger.isInsert) {
-//            OpportunityTriggerHandler.afterInsert(Trigger.newMap);
+            PreSalesRequestTriggerHandler.afterInsert(Trigger.newMap);
         }
         if (Trigger.isUpdate) {
-//            OpportunityTriggerHandler.afterUpdate(Trigger.newMap, Trigger.oldMap);
         }
     }
 
