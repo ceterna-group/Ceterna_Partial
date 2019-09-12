@@ -181,6 +181,10 @@
                             <option name="selected" value="true" />
                           </MetadataEntry>
                           <MetadataEntry>
+                            <option name="name" value="IntegrationErrorHandler" />
+                            <option name="selected" value="true" />
+                          </MetadataEntry>
+                          <MetadataEntry>
                             <option name="name" value="InternalRoadMapDataController" />
                             <option name="selected" value="true" />
                           </MetadataEntry>

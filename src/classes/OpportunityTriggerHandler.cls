@@ -141,6 +141,9 @@ public class OpportunityTriggerHandler {
                         '}';
                 HttpResponse xeroContactResponse = XeroCalloutUtility.executeCallout('POST', 'api','Contacts', accountJson);
 
+                System.debug('contact code' + xeroContactResponse.getStatusCode());
+                System.debug('contact body' + xeroContactResponse.getBody());
+
                 if (xeroContactResponse != null && xeroContactResponse.getStatusCode() == 200){
                     Map<String,Object> valueMap = (Map<String,Object>) JSON.deserializeUntyped(xeroContactResponse.getBody());
                     opp.Account.XeroContactId__c = valueMap.containsKey('Id') ? (String)valueMap.get('Id') : 'RETRY';
@@ -154,6 +157,12 @@ public class OpportunityTriggerHandler {
                 String projectJson = '  { "contactId" : "' + opp.Account.XeroContactId__c + '",' +
                                      '    "name" : "' + opp.Job_Number__c + ' - ' + opp.Name + '"}';
                 HttpResponse xeroProjectResponse = XeroCalloutUtility.executeCallout('POST', 'projects','Projects', projectJson);
+
+
+                system.debug('opp acc id is ' + opp.Account.XeroContactId__c);
+                System.debug('proj code' + xeroProjectResponse.getStatusCode());
+                System.debug('proj body' + xeroProjectResponse.getBody());
+
 
                 if (xeroProjectResponse != null && xeroProjectResponse.getStatusCode() == 201){
                     Map<String,Object> valueMap = (Map<String,Object>) JSON.deserializeUntyped(xeroProjectResponse.getBody());

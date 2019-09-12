@@ -257,6 +257,7 @@ public class EmployeeBinder {
 
             if (cezanneResponse.getStatusCode() == 200) {
 
+
                 // because Cezanne does not provide the employee email, create a map of name to email
                 Map<String,String> nameEmailMap = new Map<String,String>();
 
@@ -272,9 +273,15 @@ public class EmployeeBinder {
 
                     List<Object> employeeObjects = (List<Object>)responseMap.get('value');
 
+
                     for (Object employeeObject : employeeObjects){
 
                         Map<String,Object> userValues = (Map<String,Object>)employeeObject;
+
+                        for (String val : userValues.keySet()){
+                            system.debug(val + ': ' + userValues.get(val));
+                        }
+
 
                         if (userValues.containsKey('FullName')){
                             String nameString  = (String)userValues.get('FullName');
